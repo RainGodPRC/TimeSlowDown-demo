@@ -1,0 +1,26 @@
+# TSD — Time Slow Down
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Superpowers brainstorm artifacts
+.superpowers/
+
+# Node (for any future tooling)
+node_modules/
+
+# Xcode (for future native dev)
+build/
+DerivedData/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+Pods/
+
+# Local env
+.env
+.env.local
