@@ -106,6 +106,13 @@
       return `<div class="onb-grid-cell ${lit ? 'lit' : ''}"></div>`;
     }).join('');
 
+    // 人生格子（4160 格 = 80 年 × 52 周）
+    // 默认年龄 35，用户可调
+    if (step.visual === 'lifegrid') {
+      renderLifeGridStep(screen, step);
+      return;  // 这一步用独立渲染逻辑
+    }
+
     const visualHtml = {
       fast: `<div class="onb-visual-fast">
         <div class="onb-day">周一 · 开会</div>
@@ -137,6 +144,80 @@
     document.getElementById('onb-cta').addEventListener('click', handleOnbNext);
     const skip = document.getElementById('onb-skip');
     if (skip) skip.addEventListener('click', handleOnbSkip);
+  }
+
+  // ============================================================
+  // 人生格子屏（第 4 屏）：A4 冲击型，让用户输入年龄
+  // ============================================================
+  function renderLifeGridStep(screen, step) {
+    // 默认年龄 35，从 state 读（用户调整后记忆）
+    if (!state.onbAge) state.onbAge = 35;
+    const age = state.onbAge;
+    const pastWeeks = age * 52;
+    const totalWeeks = 4160;
+
+    // 生成 4160 格
+    const cells = [];
+    for (let w = 0; w < totalWeeks; w++) {
+      let cls = 'onb-a4-cell';
+      if (w < pastWeeks) cls += ' past';
+      else if (w === pastWeeks) cls += ' now';
+      cells.push(`<div class="${cls}"></div>`);
+    }
+
+    screen.innerHTML = `
+      <div class="onb-progress">
+        ${ONBOARDING.steps.map((_, i) => `<div class="onb-dot ${i === state.onbStep ? 'active' : ''}"></div>`).join('')}
+      </div>
+      <div class="onb-visual">
+        <div class="onb-visual-lifegrid">
+          <div class="onb-age-input-row">
+            <span>我今年</span>
+            <input type="number" id="onb-age-input" value="${age}" min="1" max="100" />
+            <span>岁</span>
+          </div>
+          <div class="onb-a4-grid">${cells.join('')}</div>
+          <div class="onb-grid-stats">
+            <span><b>${pastWeeks}</b> 周已走过</span>
+            <span><b>${totalWeeks - pastWeeks}</b> 周未来</span>
+          </div>
+        </div>
+      </div>
+      <div class="onb-eyebrow">${escapeHtml(step.eyebrow)}</div>
+      <div class="onb-headline">${escapeHtml(step.headline)}</div>
+      <div class="onb-sub">${escapeHtml(step.sub)}</div>
+      <button class="onb-cta" id="onb-cta">${escapeHtml(step.cta)}</button>
+      ${step.skipText ? `<button class="onb-skip" id="onb-skip">${escapeHtml(step.skipText)}</button>` : ''}
+    `;
+
+    document.getElementById('onb-cta').addEventListener('click', handleOnbNext);
+    const skip = document.getElementById('onb-skip');
+    if (skip) skip.addEventListener('click', handleOnbSkip);
+
+    // 年龄输入：实时重渲染格子
+    const ageInput = document.getElementById('onb-age-input');
+    ageInput.addEventListener('input', e => {
+      const v = parseInt(e.target.value, 10);
+      if (isNaN(v) || v < 1 || v > 100) return;
+      state.onbAge = v;
+      // 只重渲染格子部分，不重画整个屏幕（避免输入框失焦）
+      const newPast = v * 52;
+      const grid = screen.querySelector('.onb-a4-grid');
+      const newCells = [];
+      for (let w = 0; w < 4160; w++) {
+        let cls = 'onb-a4-cell';
+        if (w < newPast) cls += ' past';
+        else if (w === newPast) cls += ' now';
+        newCells.push(`<div class="${cls}"></div>`);
+      }
+      grid.innerHTML = newCells.join('');
+      // 更新统计
+      const stats = screen.querySelector('.onb-grid-stats');
+      stats.innerHTML = `
+        <span><b>${newPast}</b> 周已走过</span>
+        <span><b>${4160 - newPast}</b> 周未来</span>
+      `;
+    });
   }
 
   function handleOnbNext() {

@@ -969,3 +969,94 @@ html, body {
   padding-left: 8px;
   border-left: 2px solid var(--amber-soft);
 }
+
+/* ============================================================
+   v3.3：人生格子 A4 冲击型 onboarding 视觉
+   ============================================================ */
+
+.onb-visual-lifegrid {
+  width: 100%;
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 年龄选择器（轻量） */
+.onb-age-input-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+.onb-age-input-row input[type="number"] {
+  width: 60px;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--ink);
+  text-align: center;
+  -moz-appearance: textfield;
+}
+.onb-age-input-row input::-webkit-outer-spin-button,
+.onb-age-input-row input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* A4 格子图 */
+.onb-a4-grid {
+  display: grid;
+  grid-template-columns: repeat(52, 1fr);
+  gap: 1px;
+  background: #fff;
+  padding: 6px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  box-shadow: 0 6px 18px rgba(80, 60, 30, 0.12);
+  /* 80 行 × 52 列 = 4160 格，A4 比例 */
+  grid-template-rows: repeat(80, 1fr);
+  aspect-ratio: 52 / 80;
+}
+.onb-a4-cell {
+  background: #fff;
+  border-radius: 0.5px;
+}
+/* 已度过的格子：深色（残缺感） */
+.onb-a4-cell.past {
+  background: var(--ink);
+  opacity: 0.65;
+}
+/* 当前格子：琥珀色 + 光晕（你在这里） */
+.onb-a4-cell.now {
+  background: var(--amber);
+  box-shadow: 0 0 0 1.5px var(--amber), 0 0 6px rgba(200, 135, 60, 0.8);
+  animation: nowPulse 2s ease-in-out infinite;
+  position: relative;
+  z-index: 2;
+}
+@keyframes nowPulse {
+  0%, 100% { box-shadow: 0 0 0 1.5px var(--amber), 0 0 6px rgba(200, 135, 60, 0.8); }
+  50%      { box-shadow: 0 0 0 1.5px var(--amber), 0 0 12px rgba(200, 135, 60, 1); }
+}
+
+/* 格子统计标签 */
+.onb-grid-stats {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.5px;
+}
+.onb-grid-stats b {
+  color: var(--amber-deep);
+  font-weight: 600;
+  font-family: var(--font-serif);
+  font-size: 13px;
+}
