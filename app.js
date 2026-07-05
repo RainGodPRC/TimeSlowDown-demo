@@ -130,7 +130,9 @@
     if (state.scanDisabled || state.scanIgnoredToday) return '';
 
     const candidates = runNightScan();
-    if (candidates.length < NIGHT_SCAN.minMarksToScan) {
+    // demo 模式下放宽阈值到 1（让用户能看到扫描效果）；真实使用时阈值是 2
+    const threshold = state.mode === 'demo' ? 1 : NIGHT_SCAN.minMarksToScan;
+    if (candidates.length < threshold) {
       // 今晚没素材，不刷存在感
       return '';
     }
