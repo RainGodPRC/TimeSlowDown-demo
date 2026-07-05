@@ -667,8 +667,53 @@ html, body {
 
 /* ============ 响应式 ============ */
 @media (max-width: 900px) {
-  .site-frame { flex-direction: column; align-items: center; padding: 20px; gap: 30px; }
-  .meta-panel { position: static; width: 100%; max-width: 390px; }
+  /* 手机端：完全隐藏给设计者看的 meta-panel。
+     被试不需要看到 "v3.1 ZCode 分支 / 论点 D+B+C / 设计者入口" 这些术语。
+     v3.7 修复：之前只是改成顶部排布，导致手机第一屏全是术语墙。 */
+  .meta-panel { display: none !important; }
+
+  /* iPhone 壳直接居中、占满 */
+  .site-frame {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    gap: 0;
+    min-height: 100vh;
+    background: linear-gradient(180deg, #f0e9da 0%, #e8ddc6 100%);
+  }
+  .phone-shell {
+    margin: 0;
+    transform: none;
+  }
+}
+
+/* 极窄屏（≤ 420px，绝大多数手机）：让 iPhone 壳撑满视口宽度 */
+@media (max-width: 420px) {
+  .phone-shell {
+    width: 100vw;
+    max-width: 420px;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0;
+    padding: 0;
+  }
+  .phone-screen {
+    border-radius: 0;
+    height: 100%;
+  }
+  .phone-notch { display: none; }
+  .status-bar {
+    padding-top: env(safe-area-inset-top, 12px);
+    height: calc(50px + env(safe-area-inset-top, 0px));
+  }
+  /* 视图滚动区也加 safe-area，避免被系统手势条挡住 */
+  .tell-scroll, .meadow-scroll, .archive-scroll, .compose-body {
+    padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+  }
+  .tab-bar {
+    padding-bottom: calc(26px + env(safe-area-inset-bottom, 0px));
+  }
 }
 
 /* ============================================================

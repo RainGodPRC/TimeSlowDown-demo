@@ -1008,8 +1008,9 @@
               <div class="setting-group">
                 <div class="setting-row"><span>朴素模式</span><span style="font-size:11px;color:var(--ink-soft)">${state.plainMode ? '已开启' : '未开启'}（点顶部 🌿/📜 切换）</span></div>
                 <div class="setting-row"><span>分支论点</span><span style="font-size:11px;color:var(--ink-soft)">D+B+C（ZCode）</span></div>
-                <div class="setting-row"><span>版本</span><span style="font-size:11px;color:var(--ink-soft)">v3.6 Demo</span></div>
+                <div class="setting-row"><span>版本</span><span style="font-size:11px;color:var(--ink-soft)">v3.7 Demo</span></div>
                 <div class="setting-row"><span>今晚扫描（主动发现）</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="scan-toggle">${state.scanDisabled ? '已关闭 · 点此开启' : '已开启 · 点此关闭'}</span></div>
+                <div class="setting-row"><span>看示例数据（陈雨三个月）</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="demo-link">点这里</span></div>
                 <div class="setting-row"><span>重置（回到 onboarding）</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="reset-link">点这里</span></div>
               </div>
             `;
@@ -1023,6 +1024,12 @@
             if (st) st.addEventListener('click', () => {
               state.scanDisabled = !state.scanDisabled;
               st.textContent = state.scanDisabled ? '已关闭 · 点此开启' : '已开启 · 点此关闭';
+            });
+            const dl = v.querySelector('#demo-link');
+            if (dl) dl.addEventListener('click', () => {
+              enterDemoMode();
+              switchView('tell');
+              renderTell();
             });
           }
           switchView('settings');
