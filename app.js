@@ -754,10 +754,7 @@
     document.getElementById('upgrade-close').addEventListener('click', closeUpgrade);
     document.getElementById('upgrade-confirm').addEventListener('click', confirmUpgrade);
 
-    // 开场白模板
-    document.getElementById('opening-template-btn').addEventListener('click', () => {
-      document.getElementById('opening-overlay').classList.add('show');
-    });
+    // 开场白模板（关闭按钮；opening-template-btn 在 renderTell 里动态绑定）
     document.getElementById('opening-close').addEventListener('click', () => {
       document.getElementById('opening-overlay').classList.remove('show');
     });
