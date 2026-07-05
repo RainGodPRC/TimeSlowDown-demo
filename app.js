@@ -483,6 +483,9 @@
 
     // 有数据状态：完整讲述挑战首页
     const html = [];
+    const weekMoments = getWeekMoments();
+    const told = weekMoments.filter(m => m.toldAt);
+    const untold = weekMoments.filter(m => !m.toldAt);
 
     // 邀请卡（R1：邀请不是任务，不显示 0/3）
     let title, status;
