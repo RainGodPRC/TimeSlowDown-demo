@@ -24,3 +24,5 @@ Pods/
 # Local env
 .env
 .env.local
+claude-code-branch/
+codex-branch/
