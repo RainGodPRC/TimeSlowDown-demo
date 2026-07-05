@@ -1279,3 +1279,84 @@ html, body {
   margin-top: 8px;
 }
 .compare-cta:hover { background: var(--amber-deep); }
+
+/* ============================================================
+   v3.5：人生格子强对比修复（v3.4 格子太小看不见）
+   ============================================================ */
+
+/* 覆盖 v3.4 的淡灰，改深黑 + 强对比 */
+.onb-a4-grid .onb-a4-cell.past {
+  background: #1a1612 !important;        /* 深墨黑，不是淡灰 */
+  opacity: 1 !important;
+}
+.onb-a4-grid .onb-a4-cell.future {
+  background: #fff !important;
+  opacity: 1 !important;
+  border: 0.5px solid #f0e8d5;           /* 给白格淡淡的边框，让"格子感"出来 */
+}
+.onb-a4-grid .onb-a4-cell.remembered {
+  background: var(--amber) !important;
+  opacity: 1 !important;
+  box-shadow: 0 0 0 0.5px var(--amber-deep), 0 0 6px rgba(200, 135, 60, 0.9) !important;
+  position: relative;
+  z-index: 3;
+}
+.onb-a4-grid .onb-a4-cell.remembered-deep {
+  background: var(--moss) !important;
+  opacity: 1 !important;
+  box-shadow: 0 0 0 0.5px var(--moss-deep), 0 0 6px rgba(93, 122, 92, 0.9) !important;
+  position: relative;
+  z-index: 3;
+}
+.onb-a4-grid .onb-a4-cell.now {
+  background: var(--amber) !important;
+  box-shadow: 0 0 0 1.5px var(--amber), 0 0 10px rgba(200, 135, 60, 1) !important;
+  animation: nowPulse 1.5s ease-in-out infinite !important;
+  position: relative;
+  z-index: 5;
+}
+
+/* 加大格子图本体：撑满容器宽度，且增加高度 */
+.onb-visual-lifegrid .onb-a4-grid {
+  max-width: 320px;
+  margin: 0 auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* 10 年分隔线（每 10 年 = 520 格 = 10 行）通过 grid 的 background-image 模拟 */
+.onb-a4-grid.with-decades {
+  background-image:
+    linear-gradient(to bottom, transparent calc(10 * (100% / 80) - 1px), rgba(200, 135, 60, 0.4) calc(10 * (100% / 80) - 1px), rgba(200, 135, 60, 0.4) calc(10 * (100% / 80)), transparent calc(10 * (100% / 80))),
+    linear-gradient(to bottom, transparent calc(20 * (100% / 80) - 1px), rgba(200, 135, 60, 0.4) calc(20 * (100% / 80) - 1px), rgba(200, 135, 60, 0.4) calc(20 * (100% / 80)), transparent calc(20 * (100% / 80))),
+    linear-gradient(to bottom, transparent calc(30 * (100% / 80) - 1px), rgba(200, 135, 60, 0.4) calc(30 * (100% / 80) - 1px), rgba(200, 135, 60, 0.4) calc(30 * (100% / 80)), transparent calc(30 * (100% / 80))),
+    linear-gradient(to bottom, transparent calc(40 * (100% / 80) - 1px), rgba(200, 135, 60, 0.4) calc(40 * (100% / 80) - 1px), rgba(200, 135, 60, 0.4) calc(40 * (100% / 80)), transparent calc(40 * (100% / 80))),
+    linear-gradient(to bottom, transparent calc(50 * (100% / 80) - 1px), rgba(200, 135, 60, 0.4) calc(50 * (100% / 80) - 1px), rgba(200, 135, 60, 0.4) calc(50 * (100% / 80)), transparent calc(50 * (100% / 80))),
+    linear-gradient(to bottom, transparent calc(60 * (100% / 80) - 1px), rgba(200, 135, 60, 0.4) calc(60 * (100% / 80) - 1px), rgba(200, 135, 60, 0.4) calc(60 * (100% / 80)), transparent calc(60 * (100% / 80))),
+    linear-gradient(to bottom, transparent calc(70 * (100% / 80) - 1px), rgba(200, 135, 60, 0.4) calc(70 * (100% / 80) - 1px), rgba(200, 135, 60, 0.4) calc(70 * (100% / 80)), transparent calc(70 * (100% / 80)));
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+/* 年龄输入框再放大（v3.4 还不够显眼） */
+.onb-age-input-row {
+  font-size: 16px !important;
+  padding: 12px 0 !important;
+  margin-bottom: 4px;
+}
+.onb-age-input-row input[type="number"] {
+  font-size: 36px !important;
+  font-weight: 700 !important;
+  width: 100px !important;
+  border-bottom: 3px solid var(--amber) !important;
+}
+
+/* 标签提示用户可以点 */
+.onb-age-input-row::after {
+  content: '← 改成你的年龄';
+  display: block;
+  font-size: 10px;
+  color: var(--ink-faint);
+  font-family: var(--font-sans);
+  margin-top: 2px;
+  font-style: italic;
+}

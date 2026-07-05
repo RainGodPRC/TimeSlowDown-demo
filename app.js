@@ -205,7 +205,7 @@
             <input type="number" id="onb-age-input" value="${age}" min="1" max="100" />
             <span>岁</span>
           </div>
-          <div class="onb-a4-grid">${buildGrid(pastWeeks)}</div>
+          <div class="onb-a4-grid with-decades">${buildGrid(pastWeeks)}</div>
           <div class="onb-grid-stats">
             <span><b>${pastWeeks}</b> 周已走过</span>
             <span><b>${totalWeeks - pastWeeks}</b> 周未来</span>
