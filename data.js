@@ -173,7 +173,42 @@ const PLAIN_MODE = {
   description: '关闭旷野视觉，使用纯文字列表。所有功能仍然可用。',
 };
 
+// ============================================================
+// Onboarding（三屏极简，重在行动，不在教学）
+// ============================================================
+const ONBOARDING = {
+  steps: [
+    {
+      // 第 1 屏：共情，不教概念
+      eyebrow: '嗨',
+      headline: '感觉时间过得很快吗？',
+      sub: '一周，一月，一年——嗖地就过去。\n回头看又想不起具体发生过什么。',
+      visual: 'fast',           // 快速飘过的日子
+      cta: '是的',
+      skipText: '其实没有',
+    },
+    {
+      // 第 2 屏：承诺，不教机制
+      eyebrow: 'TSD 帮你',
+      headline: '把日子留住，\n回头能讲得出来。',
+      sub: '不需要写日记。\n留一张照片、说一句话，都算。',
+      visual: 'rest',           // 一张照片被"留住"
+      cta: '好',
+      skipText: null,
+    },
+    {
+      // 第 3 屏：行动，不解释
+      eyebrow: '试试',
+      headline: '现在，留一个瞬间',
+      sub: '今天有什么是你想记住的？\n一张照片，一个心情，都行。',
+      visual: 'plus',           // 一个大加号
+      cta: '开始',
+      skipText: '先看看示例',
+    },
+  ],
+};
+
 // 暴露
 window.__TSD_DATA__ = {
-  USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, PLAIN_MODE,
+  USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, PLAIN_MODE, ONBOARDING,
 };

@@ -3,17 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TSD v3 — Time Slow Down</title>
+  <title>TSD — Time Slow Down</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=5" />
+  <link rel="stylesheet" href="styles.css?v=6" />
 </head>
 <body>
 
 <div class="site-frame">
 
-  <!-- 左侧说明 -->
   <aside class="meta-panel">
     <div class="brand">
       <div class="brand-mark">TSD</div>
@@ -22,46 +21,33 @@
     <p class="brand-slogan">「让走过的时间，<br/>长成你的人生。」</p>
 
     <div class="meta-section">
-      <div class="meta-label">v3 · ZCode 分支</div>
+      <div class="meta-label">v3.1 · ZCode 分支</div>
       <p class="meta-text">
-        论点：<b>D 讲述优先</b>（北极星）+<br/>
-        <b>B Mark 优先</b>（输入）+<br/>
-        <b>C 旷野优先</b>（舞台）。<br/>
-        A 编译优先暂缓。
+        论点：<b>D 讲述优先</b> + <b>B Mark 优先</b> + <b>C 旷野优先</b>。<br/>
+        v3.1：onboarding + 空状态 + 去概念化。
       </p>
     </div>
 
     <div class="meta-section">
-      <div class="meta-label">3 个视图</div>
+      <div class="meta-label">这次改了什么</div>
       <ul class="meta-tips">
-        <li>🌅 <b>讲述</b>——本周讲述挑战（首页）</li>
-        <li>🌿 <b>旷野</b>——语义缩放 今日→一生</li>
-        <li>📜 <b>原料</b>——所有瞬间（河流列表）</li>
+        <li>首次打开 → <b>三屏 onboarding</b></li>
+        <li>新用户首页 → <b>极简</b>（一句话+加号）</li>
+        <li>UI <b>去术语</b>（不出现 L0/L1/Mark）</li>
       </ul>
     </div>
 
     <div class="meta-section">
-      <div class="meta-label">R 应对（已批准）</div>
-      <p class="meta-text" style="font-size:11px;line-height:1.7">
-        <b>R1</b> 挑战是邀请不是任务<br/>
-        <b>R2</b> 视觉是结果不是动机<br/>
-        <b>R3</b> L0 Mark 也算"讲了"<br/>
-        　 AI 只提问不代写
+      <div class="meta-label">设计者入口</div>
+      <p class="meta-text" style="font-size:11px">
+        看陈雨的示例数据（跳过 onboarding）：
       </p>
-    </div>
-
-    <div class="meta-section">
-      <div class="meta-label">试一下</div>
-      <ul class="meta-tips">
-        <li>🌿/📜 顶部切换 <b>朴素/旷野</b>模式</li>
-        <li>🌿 缩放 今日→月→年→十年→一生</li>
-        <li>🌅 点"讲这一个" 升级 L0→L1</li>
-        <li>📜 滚动浏览所有原料</li>
-      </ul>
+      <button id="reset-demo-btn" style="margin-top:6px;padding:6px 12px;background:var(--bg-warm);border:1px solid var(--line);border-radius:6px;cursor:pointer;font-size:11px;color:var(--ink-soft)">
+        看示例数据
+      </button>
     </div>
   </aside>
 
-  <!-- iPhone -->
   <div class="phone-shell">
     <div class="phone-notch"></div>
     <div class="phone-screen">
@@ -76,52 +62,27 @@
 
       <main class="app-views">
 
-        <!-- ============ 视图 1：讲述（默认首页） ============ -->
-        <section class="view view-tell active" data-view="tell">
+        <!-- Onboarding -->
+        <section class="view view-onboarding" data-view="onboarding">
+          <div class="onboarding-screen" id="onboarding-screen"></div>
+        </section>
+
+        <!-- 视图 1：这一周 -->
+        <section class="view view-tell" data-view="tell">
           <header class="view-header">
             <div class="view-title">这一周</div>
-            <button class="icon-btn" id="plain-toggle-tell" title="切换朴素/旷野模式">
+            <button class="icon-btn" id="plain-toggle-tell">
               <span id="plain-icon-tell">🌿</span>
             </button>
           </header>
-
-          <div class="tell-scroll">
-            <!-- 邀请（不是任务） -->
-            <div class="challenge-invite" id="challenge-invite">
-              <!-- 由 app.js 填充：邀请文案 + 已讲数量（不显示 0/3） -->
-            </div>
-
-            <!-- 已讲过的故事（花） -->
-            <div class="section-label">这一周你讲过的</div>
-            <div class="told-list" id="told-list"></div>
-
-            <!-- 待 Mark 的瞬间（草） -->
-            <div class="section-label">这周的瞬间 <span class="label-hint">（Mark 了就算讲过，可选升级）</span></div>
-            <div class="untold-list" id="untold-list"></div>
-
-            <!-- AI 提问（R3：只提问不代写） -->
-            <div id="ai-help-section" class="ai-help-section">
-              <div class="section-label">如果想讲但不知道怎么开头</div>
-              <div class="ai-questions" id="ai-questions"></div>
-              <button class="opening-template-btn" id="opening-template-btn">
-                💬 给我一个开场白模板
-              </button>
-            </div>
-
-            <!-- 跳过本周（R1） -->
-            <div class="skip-week">
-              <button class="skip-week-btn" id="skip-week-btn">这周就算了</button>
-              <p class="skip-week-hint">不会失去任何东西。平淡的日子也是日子。</p>
-            </div>
-          </div>
-
-          <button class="fab" id="fab" title="Mark 一刻">＋</button>
+          <div class="tell-scroll" id="tell-scroll"></div>
+          <button class="fab" id="fab">＋</button>
         </section>
 
-        <!-- ============ 视图 2：旷野（语义缩放） ============ -->
+        <!-- 视图 2：旷野 -->
         <section class="view view-meadow" data-view="meadow">
           <header class="view-header">
-            <button class="icon-btn" id="plain-toggle-meadow" title="切换朴素/旷野">
+            <button class="icon-btn" id="plain-toggle-meadow">
               <span id="plain-icon-meadow">🌿</span>
             </button>
             <div class="view-title-small" id="meadow-title">旷野</div>
@@ -133,23 +94,17 @@
               <button class="zoom-pill" data-zoom="life">一生</button>
             </div>
           </header>
-
-          <div class="meadow-semantic" id="meadow-semantic">
-            <!-- 当前的语义问句 -->
-          </div>
-
+          <div class="meadow-semantic" id="meadow-semantic"></div>
           <div class="meadow-scroll">
-            <div id="meadow-canvas">
-              <!-- 由 app.js 根据 zoom level 渲染 -->
-            </div>
+            <div id="meadow-canvas"></div>
           </div>
         </section>
 
-        <!-- ============ 视图 3：原料（河流列表） ============ -->
+        <!-- 视图 3：原料 -->
         <section class="view view-archive" data-view="archive">
           <header class="view-header">
             <div class="view-title">原料</div>
-            <button class="icon-btn" id="plain-toggle-archive" title="切换朴素/旷野">
+            <button class="icon-btn" id="plain-toggle-archive">
               <span id="plain-icon-archive">🌿</span>
             </button>
           </header>
@@ -159,83 +114,71 @@
           </div>
         </section>
 
-        <!-- ============ 录入页（B：Mark 优先） ============ -->
+        <!-- 录入页 -->
         <section class="view view-compose" data-view="compose">
           <header class="view-header">
             <button class="icon-btn" id="compose-close">×</button>
-            <div class="view-title-small">Mark 一刻</div>
+            <div class="view-title-small">留住一刻</div>
             <button class="save-btn" id="compose-save">留住</button>
           </header>
-
           <div class="compose-body">
-            <div class="compose-prompt">这一刻，有什么你想留住的？</div>
-
+            <div class="compose-prompt" id="compose-prompt">这一刻，有什么你想留住的？</div>
             <div class="compose-image-slot" id="compose-image-slot">
-              <span class="image-placeholder">＋ Mark 一张照片（推荐，5 秒就够）</span>
+              <span class="image-placeholder">＋ 留一张照片（5 秒就够）</span>
             </div>
-
             <div class="compose-section-label">心情</div>
             <div class="compose-mood-row" id="compose-mood-row"></div>
-
-            <div class="compose-section-label">一句话 <span class="label-hint">（L1：可选，但讲了就算"故事"）</span></div>
+            <div class="compose-section-label">想说点什么吗？ <span class="label-hint">（可选，不说也行）</span></div>
             <textarea class="compose-text" id="compose-text" placeholder="它在哪？和谁？为什么重要？" maxlength="60" rows="2"></textarea>
-
             <div class="compose-section-label">和谁（可选）</div>
             <input class="compose-location" id="compose-people" placeholder="比如：妈妈、小琳" />
-
             <label class="compose-first-check">
               <input type="checkbox" id="compose-first" />
               <span>这是我的一个「第一次」</span>
             </label>
-
             <div class="compose-hint">
-              💡 <b>L0 Mark 也算讲过</b>——只选照片+心情就够。<br/>
-              想说更多时再写一句话（L1）。<br/>
-              不写不会失去什么。
+              💡 <b>只留一张照片也算</b>。<br/>
+              想说更多时再说一句话。<br/>
+              不说不会失去什么。
             </div>
           </div>
         </section>
 
-        <!-- ============ L1 升级浮层（"讲这一个"）============ -->
+        <!-- "说点什么" 升级浮层 -->
         <div class="upgrade-overlay" id="upgrade-overlay">
           <div class="upgrade-card">
             <div class="upgrade-header">
-              <span class="upgrade-title">讲这一个</span>
+              <span class="upgrade-title">说点什么</span>
               <button class="upgrade-close" id="upgrade-close">×</button>
             </div>
             <div class="upgrade-body">
               <div class="upgrade-moment" id="upgrade-moment"></div>
-              <div class="compose-section-label">为什么这一刻对你重要？ <span class="label-hint">（≤30 字）</span></div>
+              <div class="compose-section-label">这一刻为什么对你重要？ <span class="label-hint">（≤30 字）</span></div>
               <textarea class="upgrade-why" id="upgrade-why" placeholder="一句话就够……" maxlength="30" rows="2"></textarea>
-
               <div class="upgrade-ai-help" id="upgrade-ai-help">
                 <div class="upgrade-ai-label">卡住了？让 TSD 提个具体问题：</div>
                 <div class="upgrade-ai-question" id="upgrade-ai-question"></div>
               </div>
-
               <div class="upgrade-open-tpl" id="upgrade-open-tpl" style="display:none">
-                <div class="upgrade-ai-label">开场白（你来填）：</div>
+                <div class="upgrade-ai-label">或者填个开头：</div>
                 <p class="open-tpl-text">那天我和___在___，让我印象最深的是___。</p>
               </div>
-
-              <button class="upgrade-btn" id="upgrade-confirm">讲完了</button>
-              <p class="upgrade-hint">L1 = Mark + 一句"为什么"。这就是讲述。</p>
+              <button class="upgrade-btn" id="upgrade-confirm">说完了</button>
+              <p class="upgrade-hint">说一句话就够了。这是你的故事。</p>
             </div>
           </div>
         </div>
 
-        <!-- ============ 录入完成反馈（R2：静默，不发奖励）============ -->
         <div class="compose-done" id="compose-done">
           <div class="done-icon">✓</div>
           <div class="done-text">留住了</div>
           <div class="done-sub" id="done-sub"></div>
         </div>
 
-        <!-- ============ 开场白模板浮层 ============ -->
         <div class="opening-overlay" id="opening-overlay">
           <div class="opening-card">
             <div class="opening-header">
-              <span>开场白（你来填）</span>
+              <span>填个开头</span>
               <button class="opening-close" id="opening-close">×</button>
             </div>
             <p class="opening-template-display">那天我和___在___，让我印象最深的是___。</p>
@@ -245,11 +188,10 @@
 
       </main>
 
-      <!-- 底部 Tab -->
       <nav class="tab-bar" id="tab-bar">
         <button class="tab active" data-tab="tell">
           <span class="tab-icon">🌅</span>
-          <span class="tab-label">讲述</span>
+          <span class="tab-label">这一周</span>
         </button>
         <button class="tab" data-tab="meadow">
           <span class="tab-icon">🌿</span>
@@ -270,7 +212,7 @@
   </div>
 </div>
 
-<script src="data.js?v=5"></script>
-<script src="app.js?v=5"></script>
+<script src="data.js?v=6"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>

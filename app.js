@@ -1,24 +1,59 @@
 // ============================================================
-// TSD Demo v3 — 应用逻辑
+// TSD Demo v3.1 — 应用逻辑
 // 论点：D 讲述优先 + B Mark 优先 + C 旷野优先
+// v3.1：onboarding + 空状态 + 去概念化
 // ============================================================
 
 (() => {
-  const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS } = window.__TSD_DATA__;
+  const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, ONBOARDING } = window.__TSD_DATA__;
+
+  // ============ 数据模式 ============
+  // 'onboarding' 首启动 | 'empty' 空状态（用户自己用）| 'demo' 示例数据（陈雨）
+  const STORAGE_KEY = 'tsd_v31_mode';
+  function loadMode() {
+    try { return localStorage.getItem(STORAGE_KEY) || 'onboarding'; }
+    catch (e) { return 'onboarding'; }
+  }
+  function saveMode(m) {
+    try { localStorage.setItem(STORAGE_KEY, m); } catch (e) {}
+  }
 
   const state = {
-    currentView: 'tell',
-    moments: [...MOMENTS],
+    mode: loadMode(),         // 'onboarding' | 'empty' | 'demo'
+    currentView: 'onboarding',
+    moments: [],              // empty/demo 切换时填充
+    onbStep: 0,               // onboarding 当前屏
     selectedMood: null,
-    plainMode: false,        // R2：朴素模式开关
+    plainMode: false,
     meadowZoom: 'week',
-    upgradeTargetId: null,   // 当前正在升级的瞬间 id
-    weekSkipped: false,      // R1：本周是否已跳过
+    upgradeTargetId: null,
+    weekSkipped: false,
   };
+
+  // 进入示例模式：填陈雨数据
+  function enterDemoMode() {
+    state.mode = 'demo';
+    state.moments = JSON.parse(JSON.stringify(MOMENTS));
+    saveMode('demo');
+  }
+  // 进入空模式（被试真实使用）
+  function enterEmptyMode() {
+    state.mode = 'empty';
+    state.moments = [];
+    saveMode('empty');
+  }
+  // 首启动根据 mode 决定 moments
+  if (state.mode === 'demo') state.moments = JSON.parse(JSON.stringify(MOMENTS));
+  else state.moments = [];
 
   // ============ 工具 ============
   const parseDate = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
-  const TODAY = parseDate(USER.today);
+  // 在 empty 模式下，"今天"用真实今天，便于被试 Mark
+  const TODAY = (state.mode === 'empty') ? new Date() : parseDate(USER.today);
+  function todayStr() {
+    const d = TODAY;
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
   const BIRTH = parseDate(USER.birthDate);
 
   function isoWeek(d) {
@@ -43,7 +78,7 @@
 
   // 本周的瞬间
   function getWeekMoments() {
-    const wk = weekKey(USER.today);
+    const wk = weekKey(todayStr());
     return state.moments.filter(m => weekKey(m.date) === wk);
   }
 
@@ -52,10 +87,69 @@
     state.currentView = name;
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.dataset.view === name));
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
-    document.getElementById('tab-bar').style.display = (name === 'compose') ? 'none' : 'flex';
+    document.getElementById('tab-bar').style.display = (name === 'compose' || name === 'onboarding') ? 'none' : 'flex';
     if (name === 'tell') renderTell();
     if (name === 'meadow') renderMeadow();
     if (name === 'archive') renderArchive();
+  }
+
+  // ============================================================
+  // Onboarding（三屏极简）
+  // ============================================================
+  function renderOnboarding() {
+    const step = ONBOARDING.steps[state.onbStep];
+    const screen = document.getElementById('onboarding-screen');
+    const visualHtml = {
+      fast: `<div class="onb-visual-fast">
+        <div class="onb-day">周一 · 开会</div>
+        <div class="onb-day">周二 · 加班</div>
+        <div class="onb-day">周三 · 又是开会</div>
+        <div class="onb-day">周四 · ... 这是哪天？</div>
+      </div>`,
+      rest: `<div class="onb-visual-rest"><div class="onb-photo">📷</div></div>`,
+      plus: `<div class="onb-visual-plus">＋</div>`,
+    }[step.visual];
+
+    screen.innerHTML = `
+      <div class="onb-progress">
+        ${ONBOARDING.steps.map((_, i) => `<div class="onb-dot ${i === state.onbStep ? 'active' : ''}"></div>`).join('')}
+      </div>
+      <div class="onb-visual">${visualHtml}</div>
+      <div class="onb-eyebrow">${escapeHtml(step.eyebrow)}</div>
+      <div class="onb-headline">${escapeHtml(step.headline)}</div>
+      <div class="onb-sub">${escapeHtml(step.sub)}</div>
+      <button class="onb-cta" id="onb-cta">${escapeHtml(step.cta)}</button>
+      ${step.skipText ? `<button class="onb-skip" id="onb-skip">${escapeHtml(step.skipText)}</button>` : ''}
+    `;
+
+    document.getElementById('onb-cta').addEventListener('click', handleOnbNext);
+    const skip = document.getElementById('onb-skip');
+    if (skip) skip.addEventListener('click', handleOnbSkip);
+  }
+
+  function handleOnbNext() {
+    if (state.onbStep < ONBOARDING.steps.length - 1) {
+      state.onbStep++;
+      renderOnboarding();
+    } else {
+      // 最后一屏的"开始" → 进入空模式 + 直接打开录入
+      enterEmptyMode();
+      switchView('tell');
+      setTimeout(() => openCompose(), 300);  // 让 tell 视图先渲染
+    }
+  }
+
+  function handleOnbSkip() {
+    const step = ONBOARDING.steps[state.onbStep];
+    if (step.skipText === '其实没有') {
+      // 第 1 屏"其实没有" → 跳到第 2 屏（不强迫共情）
+      state.onbStep = 1;
+      renderOnboarding();
+    } else if (step.skipText === '先看看示例') {
+      // 第 3 屏"看示例" → 进入 demo 模式（陈雨数据）
+      enterDemoMode();
+      switchView('tell');
+    }
   }
 
   // ============ 朴素/旷野切换（R2 应对）============
@@ -73,22 +167,37 @@
   }
 
   // ============================================================
-  // 视图 1：讲述挑战（首页）
+  // 视图 1：这一周（首页，根据数据自动选空/有状态）
   // ============================================================
   function renderTell() {
-    const weekMoments = getWeekMoments();
-    const told = weekMoments.filter(m => m.level >= 1 && m.toldAt);
-    const untold = weekMoments.filter(m => !m.toldAt);
+    const scroll = document.getElementById('tell-scroll');
+    const allMoments = state.moments;
 
-    // 邀请文案（R1：邀请不是任务，不显示 0/3）
-    const invite = document.getElementById('challenge-invite');
+    // 空状态：完全不同的极简首页
+    if (allMoments.length === 0) {
+      scroll.innerHTML = `
+        <div class="tell-empty">
+          <div class="empty-headline">今天，<br/>有什么是你想留住的？</div>
+          <div class="empty-sub">一张照片、一个心情、一句话——<br/>任何一个都算。</div>
+          <button class="empty-plus" id="empty-plus">＋</button>
+          <div class="empty-hint">按这个开始</div>
+        </div>
+      `;
+      document.getElementById('empty-plus').addEventListener('click', openCompose);
+      return;
+    }
+
+    // 有数据状态：完整讲述挑战首页
+    const html = [];
+
+    // 邀请卡（R1：邀请不是任务，不显示 0/3）
     let title, status;
     if (state.weekSkipped) {
       title = '这周就算了';
       status = '平淡的日子也是日子。下周再见。';
     } else if (told.length === 0) {
       title = '这周三个故事，你讲得出吗？';
-      status = '这周还安静着呢。Mark 一张照片就算讲了。';
+      status = '这周还安静着呢。留一张照片就算开始。';
     } else if (told.length < 3) {
       title = '这周三个故事，你讲得出吗？';
       status = `你已经讲了 ${told.length} 个。${told.length === 1 ? '再讲两个？' : '再讲一个？'}或者就这样也很好。`;
@@ -96,90 +205,101 @@
       title = '这周你讲过了';
       status = `${told.length} 个故事。够了。`;
     }
-    invite.innerHTML = `
-      <div class="invite-period">${WEEK_CHALLENGE.period}</div>
-      <div class="invite-title">${escapeHtml(title)}</div>
-      <div class="invite-status">${escapeHtml(status)}</div>
-    `;
+    html.push(`
+      <div class="challenge-invite">
+        <div class="invite-period">这一周</div>
+        <div class="invite-title">${escapeHtml(title)}</div>
+        <div class="invite-status">${escapeHtml(status)}</div>
+      </div>
+    `);
 
-    // 已讲列表（花）
-    const toldList = document.getElementById('told-list');
+    // 已讲（花）
+    html.push('<div class="section-label">这一周你讲过的</div>');
     if (told.length === 0) {
-      toldList.innerHTML = '<div style="font-size:12px;color:var(--ink-faint);padding:8px 0">（这周还没讲过。Mark 一张照片就算开始。）</div>';
+      html.push('<div style="font-size:12px;color:var(--ink-faint);padding:8px 0 24px">（这周还没讲过。留一张照片就算开始。）</div>');
     } else {
-      toldList.innerHTML = told.map(m => {
+      html.push('<div class="told-list">');
+      told.forEach(m => {
         const mood = MOODS[m.mood];
-        const levelLabel = m.level === 2 ? 'L2 · 留了原声' : 'L1 · 讲过';
-        const levelCls = m.level === 2 ? 'l2' : '';
-        return `
+        html.push(`
           <div class="told-card">
             ${m.image ? `<img class="told-thumb" src="${m.image}" alt="" loading="lazy"/>` : ''}
             <div class="told-body">
               <div class="told-text"><span class="told-emoji">${mood.emoji}</span>${escapeHtml(m.text)}</div>
               ${m.why ? `<div class="told-why">"${escapeHtml(m.why)}"</div>` : ''}
               <div class="told-meta">
-                <span class="level-badge ${levelCls}">${levelLabel}</span>
                 ${m.location && m.location !== '—' ? `<span>· ${escapeHtml(m.location)}</span>` : ''}
                 ${m.people && m.people.length ? `<span>· ${m.people.map(escapeHtml).join('、')}</span>` : ''}
               </div>
             </div>
           </div>
-        `;
-      }).join('');
+        `);
+      });
+      html.push('</div>');
     }
 
-    // 未讲列表（草）—— L0 也展示，可升级
-    const untoldList = document.getElementById('untold-list');
-    if (untold.length === 0) {
-      untoldList.innerHTML = '<div style="font-size:12px;color:var(--ink-faint);padding:8px 0">（本周所有瞬间都已讲述。）</div>';
-    } else {
-      untoldList.innerHTML = untold.map(m => {
+    // 未讲（草）+ 升级按钮
+    if (untold.length > 0) {
+      html.push('<div class="section-label" style="margin-top:24px">这周的瞬间</div>');
+      html.push('<div class="untold-list">');
+      untold.forEach(m => {
         const mood = MOODS[m.mood];
-        return `
+        html.push(`
           <div class="untold-card">
             ${m.image ? `<img class="untold-thumb" src="${m.image}" alt="" loading="lazy"/>` : ''}
             <div class="untold-body">
               <div class="untold-text">${mood.emoji} ${escapeHtml(m.text)}</div>
-              <div class="untold-meta">${fmtDate(m.date)} · L0 已 Mark</div>
+              <div class="untold-meta">${fmtDate(m.date)}</div>
             </div>
-            <button class="untold-upgrade-btn" data-upgrade="${m.id}">讲这一个</button>
+            <button class="untold-upgrade-btn" data-upgrade="${m.id}">说点什么</button>
           </div>
-        `;
-      }).join('');
-      // 绑定升级按钮
-      untoldList.querySelectorAll('[data-upgrade]').forEach(btn => {
-        btn.addEventListener('click', () => openUpgrade(btn.dataset.upgrade));
+        `);
       });
+      html.push('</div>');
     }
 
     // AI 提问（R3：只提问不代写）
-    const aiQuestions = document.getElementById('ai-questions');
     const relevantQs = WEEK_CHALLENGE.aiQuestions.filter(q => {
       const m = getMoment(q.forMomentId);
       return m && !m.toldAt;
     });
-    if (relevantQs.length === 0) {
-      document.getElementById('ai-help-section').style.display = 'none';
-    } else {
-      document.getElementById('ai-help-section').style.display = 'block';
-      aiQuestions.innerHTML = relevantQs.map(q => {
+    if (relevantQs.length > 0) {
+      html.push('<div class="ai-help-section"><div class="section-label">不知道怎么开头？</div><div class="ai-questions">');
+      relevantQs.forEach(q => {
         const m = getMoment(q.forMomentId);
-        return `
+        html.push(`
           <div class="ai-question">
             <div class="ai-question-context">关于：${escapeHtml(m.text)}</div>
             ${escapeHtml(q.question)}
           </div>
-        `;
-      }).join('');
+        `);
+      });
+      html.push('</div>');
+      html.push('<button class="opening-template-btn" id="opening-template-btn">💬 给我一个开头</button>');
+      html.push('</div>');
     }
 
-    // 跳过按钮
-    const skipBtn = document.getElementById('skip-week-btn');
-    skipBtn.classList.toggle('skipped', state.weekSkipped);
-    skipBtn.textContent = state.weekSkipped ? '本周已跳过' : '这周就算了';
+    // 跳过本周（R1）
+    html.push(`
+      <div class="skip-week">
+        <button class="skip-week-btn ${state.weekSkipped ? 'skipped' : ''}" id="skip-week-btn">${state.weekSkipped ? '本周已跳过' : '这周就算了'}</button>
+        <p class="skip-week-hint">不会失去任何东西。平淡的日子也是日子。</p>
+      </div>
+    `);
+
+    scroll.innerHTML = html.join('');
+
+    // 绑定事件
+    scroll.querySelectorAll('[data-upgrade]').forEach(btn => {
+      btn.addEventListener('click', () => openUpgrade(btn.dataset.upgrade));
+    });
+    const ot = document.getElementById('opening-template-btn');
+    if (ot) ot.addEventListener('click', () => document.getElementById('opening-overlay').classList.add('show'));
+    const sw = document.getElementById('skip-week-btn');
+    if (sw) sw.addEventListener('click', () => { state.weekSkipped = !state.weekSkipped; renderTell(); });
   }
 
-  // ============================================================
+    // ============================================================
   // L0 → L1 升级流（讲述）
   // ============================================================
   function openUpgrade(momentId) {
@@ -226,7 +346,7 @@
     }
     m.level = 1;
     m.why = why;
-    m.toldAt = USER.today;
+    m.toldAt = todayStr();
     closeUpgrade();
     renderTell();
     // 静默反馈
@@ -261,7 +381,7 @@
 
   // 今日地貌
   function renderTodayMeadow() {
-    const today = state.moments.filter(m => m.date === USER.today);
+    const today = state.moments.filter(m => m.date === todayStr());
     return `
       <div class="meadow-canvas">
         ${renderMeadowSvg({ grass: today.length, blooms: today.filter(m=>m.toldAt).length })}
@@ -371,7 +491,7 @@
   // 朴素模式（R2：灵魂测试 7 的可切换实现）
   function renderPlainMeadow(zoom) {
     let moments;
-    if (zoom === 'today') moments = state.moments.filter(m => m.date === USER.today);
+    if (zoom === 'today') moments = state.moments.filter(m => m.date === todayStr());
     else if (zoom === 'week') moments = getWeekMoments();
     else moments = [...state.moments].sort((a, b) => b.date.localeCompare(a.date));
 
@@ -529,7 +649,7 @@
     if (text && text.length >= 5) level = 1;  // 有"为什么"算 L1
     const newM = {
       id: 'new-' + Date.now(),
-      date: USER.today,
+      date: todayStr(),
       text: text || '（仅 Mark）',
       mood: state.selectedMood || 'warm',
       location: '—',
@@ -537,7 +657,7 @@
       isFirst,
       image: hasImage ? hasImage.src : null,
       level,
-      toldAt: level >= 1 ? USER.today : null,
+      toldAt: level >= 1 ? todayStr() : null,
       why: level >= 1 ? text : null,
     };
     state.moments.unshift(newM);
@@ -577,10 +697,16 @@
               <div class="setting-group">
                 <div class="setting-row"><span>朴素模式</span><span style="font-size:11px;color:var(--ink-soft)">${state.plainMode ? '已开启' : '未开启'}（点顶部 🌿/📜 切换）</span></div>
                 <div class="setting-row"><span>分支论点</span><span style="font-size:11px;color:var(--ink-soft)">D+B+C（ZCode）</span></div>
-                <div class="setting-row"><span>版本</span><span style="font-size:11px;color:var(--ink-soft)">v3 Demo</span></div>
+                <div class="setting-row"><span>版本</span><span style="font-size:11px;color:var(--ink-soft)">v3.1 Demo</span></div>
+                <div class="setting-row"><span>重置（回到 onboarding）</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="reset-link">点这里</span></div>
               </div>
             `;
             document.querySelector('.app-views').appendChild(v);
+            const rl = v.querySelector('#reset-link');
+            if (rl) rl.addEventListener('click', () => {
+              try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+              location.reload();
+            });
           }
           switchView('settings');
         } else if (target) {
@@ -647,9 +773,20 @@
   // 启动
   // ============================================================
   function init() {
-    renderTell();
     renderComposeMoods();
     bindEvents();
+    // 设计者侧栏"看示例"按钮
+    const rdb = document.getElementById('reset-demo-btn');
+    if (rdb) rdb.addEventListener('click', () => { enterDemoMode(); switchView('tell'); renderTell(); });
+
+    // 首启动按 mode 决定入口
+    if (state.mode === 'onboarding') {
+      renderOnboarding();
+      switchView('onboarding');
+    } else {
+      // 已经走过 onboarding（'demo' 或 'empty'）→ 直接进 tell
+      switchView('tell');
+    }
   }
 
   document.addEventListener('DOMContentLoaded', init);
