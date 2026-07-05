@@ -759,11 +759,7 @@
       document.getElementById('opening-overlay').classList.remove('show');
     });
 
-    // 跳过本周
-    document.getElementById('skip-week-btn').addEventListener('click', () => {
-      state.weekSkipped = !state.weekSkipped;
-      renderTell();
-    });
+    // 注：skip-week-btn 和 opening-template-btn 现在都在 renderTell 里动态绑定
   }
 
   // ============================================================
