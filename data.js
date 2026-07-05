@@ -226,7 +226,36 @@ const ONBOARDING = {
   ],
 };
 
+// ============================================================
+// 今晚扫描（v3.6：ZCode 的"主动发现"机制）
+//
+// 哲学：TSD = 编辑（不是放大镜）
+// 编辑等用户先有素材（L0 Mark），再从素材里发现"可讲述性"
+// 触发时机：每晚（被试当晚打开 App 时看到，不推送）
+// 排序规则：人 > 第一次 > 情绪转变
+// 反 streak：不强制、不累计、不报数字、可关、频率自适应
+// ============================================================
+
+const NIGHT_SCAN = {
+  // 讲述价值评分规则（高分在前）
+  scoreRules: {
+    hasPeople: 30,        // 有人物 → 关系深、可讲述性高
+    isFirst: 20,          // 第一次 → 鲜明边界
+    moodShift: 10,        // 强情绪（深/感激） → 转变证据
+    hasPhoto: 5,          // 有照片 → 锚点强
+    hasText: 3,           // 有文字 → 锚点强
+  },
+  // 哪些 mood 算"情绪转变"（强情绪）
+  shiftMoods: ['deep', 'grateful', 'joy'],
+  // 触发阈值：当日 L0 Mark ≥ 2 才扫描（无稿件编辑不出活）
+  minMarksToScan: 2,
+  // 推送的候选数量上限
+  maxCandidates: 3,
+  // 反 streak：连续 X 天没响应就降频
+  silenceThreshold: 3,
+};
+
 // 暴露
 window.__TSD_DATA__ = {
-  USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, PLAIN_MODE, ONBOARDING,
+  USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, PLAIN_MODE, ONBOARDING, NIGHT_SCAN,
 };

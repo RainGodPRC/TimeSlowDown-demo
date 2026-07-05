@@ -28,6 +28,8 @@
     meadowZoom: 'week',
     upgradeTargetId: null,
     weekSkipped: false,
+    scanDisabled: false,       // v3.6 反 streak：用户关掉今晚扫描
+    scanIgnoredToday: false,   // v3.6 反 streak：用户当日已忽略
   };
 
   // 进入示例模式：填陈雨数据
@@ -80,6 +82,82 @@
   function getWeekMoments() {
     const wk = weekKey(todayStr());
     return state.moments.filter(m => weekKey(m.date) === wk);
+  }
+
+  // ============================================================
+  // 今晚扫描（v3.6：ZCode 主动发现机制）
+  // ============================================================
+
+  // 讲述价值评分（按 NIGHT_SCAN.scoreRules）
+  function scoreTellingValue(m) {
+    const rules = NIGHT_SCAN.scoreRules;
+    const shiftMoods = NIGHT_SCAN.shiftMoods;
+    let score = 0;
+    const reasons = [];
+
+    if (m.people && m.people.length > 0) {
+      score += rules.hasPeople;
+      reasons.push(`和 ${m.people.join('、')}`);
+    }
+    if (m.isFirst) {
+      score += rules.isFirst;
+      reasons.push('第一次');
+    }
+    if (shiftMoods.includes(m.mood)) {
+      score += rules.moodShift;
+      reasons.push(`${MOODS[m.mood].label}的瞬间`);
+    }
+    if (m.image) score += rules.hasPhoto;
+    if (m.text && m.text.length > 5 && m.text !== '（仅 Mark）') score += rules.hasText;
+
+    return { score, reasons: reasons.slice(0, 2) };  // 只显示前 2 个原因
+  }
+
+  // 扫描今日所有 L0 Mark（未升级），按讲述价值排序，取前 N 个
+  function runNightScan() {
+    const todayMoments = state.moments.filter(m => m.date === todayStr());
+    const candidates = todayMoments
+      .filter(m => !m.toldAt)  // 只看 L0（未升级）
+      .map(m => ({ moment: m, ...scoreTellingValue(m) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, NIGHT_SCAN.maxCandidates);
+    return candidates;
+  }
+
+  // 渲染今晚扫描卡片（在讲述首页顶部，邀请卡之前）
+  function renderNightScanCard() {
+    // 反 streak：用户已关闭扫描 / 当日已忽略 → 不显示
+    if (state.scanDisabled || state.scanIgnoredToday) return '';
+
+    const candidates = runNightScan();
+    if (candidates.length < NIGHT_SCAN.minMarksToScan) {
+      // 今晚没素材，不刷存在感
+      return '';
+    }
+
+    const items = candidates.map(c => `
+      <div class="night-scan-item" data-upgrade="${c.moment.id}">
+        ${c.moment.image ? `<img class="night-scan-thumb" src="${c.moment.image}" alt="" loading="lazy"/>` : ''}
+        <div class="night-scan-item-body">
+          <div class="night-scan-item-text">${escapeHtml(c.moment.text)}</div>
+          ${c.reasons.length ? `<div class="night-scan-item-why">${c.reasons.map(escapeHtml).join(' · ')}</div>` : ''}
+        </div>
+        <div class="night-scan-item-action">说点什么 ›</div>
+      </div>
+    `).join('');
+
+    return `
+      <div class="night-scan-card">
+        <div class="night-scan-header">
+          <div class="night-scan-eyebrow">今晚看起来</div>
+          <button class="night-scan-close" id="scan-close" title="不需要">×</button>
+        </div>
+        <div class="night-scan-title">今天有几个，<br/>看起来很有故事感</div>
+        <div class="night-scan-sub">随便看看，不想说也行——明天就清掉，不积累。</div>
+        <div class="night-scan-candidates">${items}</div>
+        <button class="night-scan-skip" id="scan-skip">明天再说</button>
+      </div>
+    `;
   }
 
   // ============ 视图切换 ============
@@ -421,6 +499,9 @@
       title = '这周你讲过了';
       status = `${told.length} 个故事。够了。`;
     }
+    // v3.6：今晚扫描卡片（顶部，反 streak：可忽略、不积累）
+    const scanCard = renderNightScanCard();
+    if (scanCard) html.push(scanCard);
     html.push(`
       <div class="challenge-invite">
         <div class="invite-period">这一周</div>
@@ -513,6 +594,15 @@
     if (ot) ot.addEventListener('click', () => document.getElementById('opening-overlay').classList.add('show'));
     const sw = document.getElementById('skip-week-btn');
     if (sw) sw.addEventListener('click', () => { state.weekSkipped = !state.weekSkipped; renderTell(); });
+
+    // v3.6：今晚扫描事件
+    const scanClose = document.getElementById('scan-close');
+    if (scanClose) scanClose.addEventListener('click', () => { state.scanDisabled = true; renderTell(); });
+    const scanSkip = document.getElementById('scan-skip');
+    if (scanSkip) scanSkip.addEventListener('click', () => { state.scanIgnoredToday = true; renderTell(); });
+    scroll.querySelectorAll('.night-scan-item').forEach(item => {
+      item.addEventListener('click', () => openUpgrade(item.dataset.upgrade));
+    });
   }
 
     // ============================================================
@@ -913,7 +1003,8 @@
               <div class="setting-group">
                 <div class="setting-row"><span>朴素模式</span><span style="font-size:11px;color:var(--ink-soft)">${state.plainMode ? '已开启' : '未开启'}（点顶部 🌿/📜 切换）</span></div>
                 <div class="setting-row"><span>分支论点</span><span style="font-size:11px;color:var(--ink-soft)">D+B+C（ZCode）</span></div>
-                <div class="setting-row"><span>版本</span><span style="font-size:11px;color:var(--ink-soft)">v3.1 Demo</span></div>
+                <div class="setting-row"><span>版本</span><span style="font-size:11px;color:var(--ink-soft)">v3.6 Demo</span></div>
+                <div class="setting-row"><span>今晚扫描（主动发现）</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="scan-toggle">${state.scanDisabled ? '已关闭 · 点此开启' : '已开启 · 点此关闭'}</span></div>
                 <div class="setting-row"><span>重置（回到 onboarding）</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="reset-link">点这里</span></div>
               </div>
             `;
@@ -922,6 +1013,11 @@
             if (rl) rl.addEventListener('click', () => {
               try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
               location.reload();
+            });
+            const st = v.querySelector('#scan-toggle');
+            if (st) st.addEventListener('click', () => {
+              state.scanDisabled = !state.scanDisabled;
+              st.textContent = state.scanDisabled ? '已关闭 · 点此开启' : '已开启 · 点此关闭';
             });
           }
           switchView('settings');
