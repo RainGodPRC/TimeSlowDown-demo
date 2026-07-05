@@ -148,21 +148,50 @@
 
   // ============================================================
   // 人生格子屏（第 4 屏）：A4 冲击型，让用户输入年龄
+  // 三色：淡灰（无痕过去）/ 琥珀（被记住）/ 白（未来）/ 脉冲（当前）
   // ============================================================
   function renderLifeGridStep(screen, step) {
-    // 默认年龄 35，从 state 读（用户调整后记忆）
     if (!state.onbAge) state.onbAge = 35;
     const age = state.onbAge;
     const pastWeeks = age * 52;
     const totalWeeks = 4160;
 
-    // 生成 4160 格
-    const cells = [];
-    for (let w = 0; w < totalWeeks; w++) {
-      let cls = 'onb-a4-cell';
-      if (w < pastWeeks) cls += ' past';
-      else if (w === pastWeeks) cls += ' now';
-      cells.push(`<div class="${cls}"></div>`);
+    // 模拟"被记住"的瞬间：在 0~pastWeeks 间散布约 12 个亮点（陈雨三个月用下来的体感）
+    // 用确定性 seed（不随机），让每次渲染一致
+    const rememberedSet = new Set();
+    const rememberedDeepSet = new Set();
+    // 假设用户用 TSD 三个月（约 13 周）→ 12 个被记住的瞬间
+    // 但在 onboarding 时，用户还没用过，所以模拟"如果他用了 3 个月会怎样"
+    // 简化：在已度过的周里散布一些"模拟被记住"的亮点
+    // 用 deterministic 散布：每 (pastWeeks/12) 周一个亮点
+    if (pastWeeks > 12) {
+      const step12 = Math.floor(pastWeeks / 12);
+      for (let i = 0; i < 12; i++) {
+        const idx = (i * step12) + Math.floor(step12 * 0.5);
+        if (idx < pastWeeks) rememberedSet.add(idx);
+      }
+      // 其中 3 个升级为"强烈记忆"（墨绿）
+      [...rememberedSet].slice(0, 3).forEach(idx => {
+        rememberedSet.delete(idx);
+        rememberedDeepSet.add(idx);
+      });
+    }
+
+    function buildGrid(past) {
+      const cells = [];
+      for (let w = 0; w < totalWeeks; w++) {
+        let cls = 'onb-a4-cell';
+        if (w === past) cls += ' now';
+        else if (w < past) {
+          if (rememberedDeepSet.has(w)) cls += ' remembered-deep';
+          else if (rememberedSet.has(w)) cls += ' remembered';
+          else cls += ' past';
+        } else {
+          cls += ' future';
+        }
+        cells.push(`<div class="${cls}"></div>`);
+      }
+      return cells.join('');
     }
 
     screen.innerHTML = `
@@ -176,7 +205,7 @@
             <input type="number" id="onb-age-input" value="${age}" min="1" max="100" />
             <span>岁</span>
           </div>
-          <div class="onb-a4-grid">${cells.join('')}</div>
+          <div class="onb-a4-grid">${buildGrid(pastWeeks)}</div>
           <div class="onb-grid-stats">
             <span><b>${pastWeeks}</b> 周已走过</span>
             <span><b>${totalWeeks - pastWeeks}</b> 周未来</span>
@@ -200,18 +229,23 @@
       const v = parseInt(e.target.value, 10);
       if (isNaN(v) || v < 1 || v > 100) return;
       state.onbAge = v;
-      // 只重渲染格子部分，不重画整个屏幕（避免输入框失焦）
       const newPast = v * 52;
-      const grid = screen.querySelector('.onb-a4-grid');
-      const newCells = [];
-      for (let w = 0; w < 4160; w++) {
-        let cls = 'onb-a4-cell';
-        if (w < newPast) cls += ' past';
-        else if (w === newPast) cls += ' now';
-        newCells.push(`<div class="${cls}"></div>`);
+      // 重新计算 remembered 散布
+      rememberedSet.clear();
+      rememberedDeepSet.clear();
+      if (newPast > 12) {
+        const step12 = Math.floor(newPast / 12);
+        for (let i = 0; i < 12; i++) {
+          const idx = (i * step12) + Math.floor(step12 * 0.5);
+          if (idx < newPast) rememberedSet.add(idx);
+        }
+        [...rememberedSet].slice(0, 3).forEach(idx => {
+          rememberedSet.delete(idx);
+          rememberedDeepSet.add(idx);
+        });
       }
-      grid.innerHTML = newCells.join('');
-      // 更新统计
+      const grid = screen.querySelector('.onb-a4-grid');
+      grid.innerHTML = buildGrid(newPast);
       const stats = screen.querySelector('.onb-grid-stats');
       stats.innerHTML = `
         <span><b>${newPast}</b> 周已走过</span>
@@ -239,10 +273,99 @@
       state.onbStep = 1;
       renderOnboarding();
     } else if (step.skipText === '先看看示例') {
-      // 第 3 屏"看示例" → 进入 demo 模式（陈雨数据）
-      enterDemoMode();
-      switchView('tell');
+      // 第 5 屏"先看看示例" → 打开"三个月对比" overlay（不再直接进 demo mode）
+      showCompareOverlay();
     }
+  }
+
+  // ============================================================
+  // 三个月对比 overlay：之前（空旷野）vs 之后（花团锦簇）+ 陈雨真实季故事
+  // ============================================================
+  function showCompareOverlay() {
+    let ov = document.getElementById('compare-overlay');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'compare-overlay';
+      ov.className = 'compare-overlay';
+      document.querySelector('.phone-screen').appendChild(ov);
+    }
+    ov.innerHTML = `
+      <button class="compare-close" id="compare-close">×</button>
+      <div class="compare-header">
+        <div class="compare-title">用三个月，会发生什么</div>
+        <div class="compare-sub">这是一个真实用户的例子。她叫陈雨，35 岁。</div>
+      </div>
+
+      <div class="compare-split">
+        <div class="compare-half before">
+          <div class="compare-label">用 TSD 之前</div>
+          <div class="compare-meadow" id="meadow-before"></div>
+          <div class="compare-quote">"工作、通勤、家务——<br/>三个月像 90 个相同的日子。"</div>
+        </div>
+        <div class="compare-half after">
+          <div class="compare-label">用了三个月后</div>
+          <div class="compare-meadow" id="meadow-after"></div>
+          <div class="compare-quote"><b>讲得出 8 个鲜明瞬间</b>，<br/>每月都有了主线。</div>
+        </div>
+      </div>
+
+      <div class="compare-story">
+        <div class="compare-story-period">陈雨 · 用 TSD 第一个季度</div>
+        <div class="compare-story-title">扎根，与开花</div>
+        <div class="compare-story-opening">"如果用一棵树形容这三个月：4 月在地板上吃泡面时根扎进土里；5 月在京都长出新枝；6 月侄女出生那天，开了第一朵花。"</div>
+        <div class="compare-story-body">
+          这三个月，她做了三件以前不会做的事：一个人包场看电影、一个人在国外迷路、生日不告诉任何人。
+          把它们放在一起，她才看见一条主线——开始学会和自己单独待在一起。
+        </div>
+        <div class="compare-story-body">
+          她和家人的连接也更深了：爸爸第一次跟她讲爷爷的故事，妈妈把月季举到镜头前，侄女攥住护士的手指。
+        </div>
+        <div class="compare-story-body" style="color:var(--amber-deep);font-style:italic">
+          回头看，她不会觉得这三个月"飞快地过去了"。它会觉得：它有边界，有名字，可以讲出来。
+        </div>
+      </div>
+
+      <button class="compare-cta" id="compare-cta">我也想这样</button>
+    `;
+    ov.classList.add('show');
+
+    // 渲染前后两个迷你 meadow
+    document.getElementById('meadow-before').innerHTML = renderCompareMeadow({ grass: 4, blooms: 0 });
+    document.getElementById('meadow-after').innerHTML = renderCompareMeadow({ grass: 24, blooms: 8, dense: true });
+
+    document.getElementById('compare-close').addEventListener('click', () => ov.classList.remove('show'));
+    document.getElementById('compare-cta').addEventListener('click', () => {
+      ov.classList.remove('show');
+      enterEmptyMode();
+      switchView('tell');
+      setTimeout(() => openCompose(), 300);
+    });
+  }
+
+  // 迷你 meadow（对比 overlay 用）
+  function renderCompareMeadow({ grass = 0, blooms = 0, dense = false }) {
+    const w = 120, h = 100;
+    let svg = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%">`;
+    svg += `<rect width="${w}" height="${h}" fill="transparent"/>`;
+    // 地平线
+    svg += `<rect y="${h*0.7}" width="${w}" height="${h*0.3}" fill="#d9c795" opacity="0.4"/>`;
+    // 草
+    for (let i = 0; i < grass; i++) {
+      const gx = 8 + (i / Math.max(grass, 1)) * (w - 16) + Math.sin(i * 2.7) * 3;
+      const gy = h * 0.82 + Math.cos(i * 1.3) * 4;
+      const gh = dense ? 10 + Math.abs(Math.sin(i * 0.9)) * 8 : 6 + Math.abs(Math.sin(i * 0.9)) * 4;
+      svg += `<path d="M ${gx} ${gy} Q ${gx-1} ${gy-gh/2} ${gx} ${gy-gh}" stroke="#7a9b6e" stroke-width="1" fill="none" stroke-linecap="round"/>`;
+    }
+    // 花
+    for (let i = 0; i < blooms; i++) {
+      const fx = 12 + (i / Math.max(blooms, 1)) * (w - 24) + Math.sin(i * 3.1) * 5;
+      const fy = h * 0.72 + Math.cos(i * 1.7) * 6;
+      svg += `<line x1="${fx}" y1="${fy+6}" x2="${fx}" y2="${fy-3}" stroke="#5d7a5c" stroke-width="0.6"/>`;
+      svg += `<circle cx="${fx}" cy="${fy-3}" r="2.2" fill="#d97a85"/>`;
+      svg += `<circle cx="${fx}" cy="${fy-3}" r="0.7" fill="#fff" opacity="0.8"/>`;
+    }
+    svg += `</svg>`;
+    return svg;
   }
 
   // ============ 朴素/旷野切换（R2 应对）============

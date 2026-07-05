@@ -1060,3 +1060,222 @@ html, body {
   font-family: var(--font-serif);
   font-size: 13px;
 }
+
+/* ============================================================
+   v3.4：人生格子三色 + 显眼年龄输入 + 三个月对比 overlay
+   ============================================================ */
+
+/* 显眼年龄输入 */
+.onb-age-input-row {
+  display: flex !important;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ink-soft);
+  font-family: var(--font-serif);
+  padding: 8px 0;
+}
+.onb-age-input-row input[type="number"] {
+  width: 80px !important;
+  padding: 6px 8px !important;
+  border: none !important;
+  border-bottom: 2px solid var(--amber) !important;
+  background: transparent !important;
+  font-family: var(--font-serif) !important;
+  font-size: 28px !important;
+  font-weight: 600 !important;
+  color: var(--amber-deep) !important;
+  text-align: center;
+  -moz-appearance: textfield;
+  outline: none;
+}
+.onb-age-input-row input:focus {
+  border-bottom-color: var(--amber-deep) !important;
+}
+.onb-age-input-row input::-webkit-outer-spin-button,
+.onb-age-input-row input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* 三色人生格子 */
+.onb-a4-cell.past {
+  /* 已度过·无痕：淡灰米色（褪色的记忆） */
+  background: #d4cab6;
+  opacity: 0.7;
+}
+.onb-a4-cell.remembered {
+  /* 已度过·被记住：琥珀色（亮点） */
+  background: var(--amber);
+  opacity: 1;
+  box-shadow: 0 0 4px rgba(200, 135, 60, 0.6);
+}
+.onb-a4-cell.remembered-deep {
+  /* 已度过·强烈记忆：墨绿（关系/第一次） */
+  background: var(--moss);
+  opacity: 1;
+  box-shadow: 0 0 4px rgba(93, 122, 92, 0.6);
+}
+.onb-a4-cell.future {
+  /* 未来：白 */
+  background: #fff;
+  opacity: 1;
+}
+.onb-a4-cell.now {
+  background: var(--amber);
+  box-shadow: 0 0 0 1.5px var(--amber), 0 0 8px rgba(200, 135, 60, 0.9);
+  animation: nowPulse 2s ease-in-out infinite;
+  position: relative;
+  z-index: 2;
+  opacity: 1;
+}
+/* 移除 v3.3 的 past 单色版本（覆盖） */
+.onb-a4-grid .onb-a4-cell.past:not(.remembered):not(.remembered-deep) {
+  background: #d4cab6;
+  opacity: 0.7;
+}
+
+/* ============================================================
+   三个月对比 overlay（"看示例"打开）
+   ============================================================ */
+.compare-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  display: none;
+  flex-direction: column;
+  z-index: 300;
+  padding: 50px 16px 30px;
+  overflow-y: auto;
+}
+.compare-overlay.show {
+  display: flex;
+  animation: fadeIn 0.3s ease;
+}
+.compare-close {
+  position: absolute;
+  top: 50px;
+  right: 22px;
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  line-height: 1;
+}
+.compare-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.compare-title {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.compare-sub {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.7;
+}
+.compare-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+.compare-half {
+  background: #fff;
+  border-radius: 12px;
+  padding: 14px 10px;
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.compare-label {
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+.compare-half.before .compare-meadow {
+  /* 之前：稀疏草 + 没花 */
+}
+.compare-half.after .compare-meadow {
+  /* 之后：花团锦簇 */
+}
+.compare-meadow {
+  width: 100%;
+  height: 100px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #f5efe0 0%, #ebe2c8 100%);
+  margin-bottom: 8px;
+  position: relative;
+  overflow: hidden;
+}
+.compare-quote {
+  font-family: var(--font-serif);
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+.compare-quote b { color: var(--amber-deep); font-style: normal; }
+
+.compare-story {
+  background: linear-gradient(160deg, #fff 0%, #faf3e3 100%);
+  border: 1px solid var(--amber-soft);
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 18px;
+}
+.compare-story-period {
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 6px;
+}
+.compare-story-title {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--amber-deep);
+  margin-bottom: 10px;
+}
+.compare-story-opening {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  line-height: 1.85;
+  color: var(--ink);
+  font-style: italic;
+  padding-left: 10px;
+  border-left: 3px solid var(--amber-soft);
+  margin-bottom: 12px;
+}
+.compare-story-body {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--ink-soft);
+  margin-bottom: 8px;
+}
+
+.compare-cta {
+  display: block;
+  width: 100%;
+  background: var(--amber);
+  color: #fff;
+  border: none;
+  padding: 14px;
+  border-radius: 12px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.compare-cta:hover { background: var(--amber-deep); }
