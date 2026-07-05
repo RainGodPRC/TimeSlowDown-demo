@@ -99,6 +99,13 @@
   function renderOnboarding() {
     const step = ONBOARDING.steps[state.onbStep];
     const screen = document.getElementById('onboarding-screen');
+
+    // 生成 90 格的 grid（5 个被点亮）
+    const gridCells = Array.from({length: 90}, (_, i) => {
+      const lit = [6, 22, 41, 57, 73].includes(i);  // 散布的 5 个亮点
+      return `<div class="onb-grid-cell ${lit ? 'lit' : ''}"></div>`;
+    }).join('');
+
     const visualHtml = {
       fast: `<div class="onb-visual-fast">
         <div class="onb-day">周一 · 开会</div>
@@ -106,7 +113,12 @@
         <div class="onb-day">周三 · 又是开会</div>
         <div class="onb-day">周四 · ... 这是哪天？</div>
       </div>`,
-      rest: `<div class="onb-visual-rest"><div class="onb-photo">📷</div></div>`,
+      grid: `<div class="onb-visual-grid">${gridCells}</div>`,
+      story: `<div class="onb-visual-story">
+        <div class="onb-story-period">用 TSD 的第一个季度</div>
+        <div class="onb-story-title">扎根，与开花</div>
+        <div class="onb-story-opening">"如果用一棵树形容这三个月：4 月在地板上吃泡面时根扎进土里；5 月在京都长出新枝；6 月侄女出生那天，开了第一朵花。"</div>
+      </div>`,
       plus: `<div class="onb-visual-plus">＋</div>`,
     }[step.visual];
 

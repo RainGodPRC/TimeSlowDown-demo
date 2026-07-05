@@ -902,3 +902,70 @@ html, body {
   font-size: 13px;
   line-height: 1.7;
 }
+
+/* ============================================================
+   v3.2：新 onboarding 视觉
+   ============================================================ */
+
+/* 视觉：grid（90 个方块，几个被点亮成琥珀色） */
+.onb-visual-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+  width: 100%;
+  max-width: 240px;
+}
+.onb-grid-cell {
+  aspect-ratio: 1;
+  background: var(--bg-warm);
+  border-radius: 3px;
+}
+.onb-grid-cell.lit {
+  background: var(--amber);
+  box-shadow: 0 0 8px rgba(200, 135, 60, 0.5);
+  animation: gridGlow 3s ease-in-out infinite;
+}
+.onb-grid-cell.lit:nth-child(7)  { animation-delay: 0.3s; }
+.onb-grid-cell.lit:nth-child(23) { animation-delay: 0.8s; }
+.onb-grid-cell.lit:nth-child(42) { animation-delay: 1.3s; }
+.onb-grid-cell.lit:nth-child(58) { animation-delay: 1.8s; }
+.onb-grid-cell.lit:nth-child(74) { animation-delay: 2.3s; }
+@keyframes gridGlow {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 8px rgba(200, 135, 60, 0.5); }
+  50%      { transform: scale(1.15); box-shadow: 0 0 16px rgba(200, 135, 60, 0.8); }
+}
+
+/* 视觉：story（季故事卡预览） */
+.onb-visual-story {
+  width: 100%;
+  max-width: 260px;
+  background: linear-gradient(160deg, #fff 0%, #faf3e3 100%);
+  border: 1px solid var(--amber-soft);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 12px 32px rgba(200, 135, 60, 0.18);
+  animation: gentleBob 4s ease-in-out infinite;
+}
+.onb-story-period {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 6px;
+}
+.onb-story-title {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--amber-deep);
+  margin-bottom: 10px;
+}
+.onb-story-opening {
+  font-family: var(--font-serif);
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--ink);
+  font-style: italic;
+  padding-left: 8px;
+  border-left: 2px solid var(--amber-soft);
+}
