@@ -1677,9 +1677,14 @@
     document.getElementById('compose-text').value = '';
     document.getElementById('compose-people').value = '';
     document.getElementById('compose-first').checked = false;
-    document.getElementById('compose-image-slot').innerHTML = '<span class="image-placeholder">＋ Mark 一张照片（推荐，5 秒就够）</span>';
-    document.getElementById('compose-image-slot').style.border = '1px dashed var(--line)';
-    document.getElementById('compose-image-slot').style.background = 'var(--bg-warm)';
+    // v3.16 重置图片 slot（保留隐藏的 file input）
+    const slot = document.getElementById('compose-image-slot');
+    const existingInput = slot.querySelector('input[type="file"]');
+    slot.innerHTML = '<span class="image-placeholder">＋ Mark 一张照片（推荐，5 秒就够）</span>';
+    slot.style.border = '1px dashed var(--line)';
+    slot.style.background = 'var(--bg-warm)';
+    slot._tsdImage = null;
+    if (existingInput) slot.appendChild(existingInput);  // 挂回 input
     document.querySelectorAll('.mood-chip').forEach(c => c.classList.remove('selected'));
     document.querySelectorAll('.weather-chip').forEach(c => c.classList.remove('selected'));
     document.querySelector('.weather-chip[data-weather="plain"]')?.classList.add('active');
@@ -1687,11 +1692,31 @@
     state.selectedWeather = 'plain';
   }
 
+  // v3.16 图片压缩（canvas resize + JPEG quality）
+  function compressImage(dataUrl, maxW, quality) {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > maxW) { h = h * (maxW / w); w = maxW; }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(dataUrl);  // 压缩失败用原图
+      img.src = dataUrl;
+    });
+  }
+
   function saveCompose() {
     const text = document.getElementById('compose-text').value.trim();
     const people = document.getElementById('compose-people').value.trim();
     const isFirst = document.getElementById('compose-first').checked;
-    const hasImage = document.querySelector('#compose-image-slot img');
+    const slot = document.getElementById('compose-image-slot');
+    const imgSrc = slot._tsdImage || null;  // v3.16 真实上传的 data URL
+    const hasImage = !!imgSrc;
 
     // R3 应对：L0 Mark 也算——只要有照片或心情或文字任意一个
     if (!text && !state.selectedMood && !hasImage) {
@@ -1713,7 +1738,7 @@
       location: '—',
       people: people ? people.split(/[、,，]/).map(s => s.trim()).filter(Boolean) : [],
       isFirst,
-      image: hasImage ? hasImage.src : null,
+      image: imgSrc,
       level,
       toldAt: level >= 1 ? todayStr() : null,
       why: level >= 1 ? text : null,
@@ -1884,12 +1909,39 @@
       chip.classList.add('selected');
       state.selectedMood = chip.dataset.mood;
     });
-    document.getElementById('compose-image-slot').addEventListener('click', () => {
-      const slot = document.getElementById('compose-image-slot');
-      slot.innerHTML = `<img src="https://picsum.photos/seed/tsd-pick-${Date.now()}/600/380" style="width:100%;height:100%;object-fit:cover"/>`;
-      slot.style.border = '1px solid var(--line)';
-      slot.style.background = '#fff';
-    });
+    // v3.16 真实照片上传（FileReader + canvas 压缩）
+    const imgSlot = document.getElementById('compose-image-slot');
+    if (imgSlot && !imgSlot._tsdFileBound) {
+      imgSlot._tsdFileBound = true;
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*';
+      fileInput.capture = 'environment';  // 手机端优先调相机
+      fileInput.style.display = 'none';
+      imgSlot.appendChild(fileInput);
+
+      imgSlot.addEventListener('click', e => {
+        if (e.target.tagName === 'INPUT') return;
+        fileInput.click();
+      });
+
+      fileInput.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        // 读取 + 压缩
+        const reader = new FileReader();
+        reader.onload = ev => {
+          compressImage(ev.target.result, 800, 0.7).then(dataUrl => {
+            imgSlot.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover"/>`;
+            imgSlot.style.border = '1px solid var(--line)';
+            imgSlot.style.background = '#fff';
+            imgSlot.appendChild(fileInput);  // 重新挂回 input
+            imgSlot._tsdImage = dataUrl;     // 存到 slot 上，saveCompose 读
+          });
+        };
+        reader.readAsDataURL(file);
+      });
+    }
 
     // L1 升级
     document.getElementById('upgrade-close').addEventListener('click', closeUpgrade);
