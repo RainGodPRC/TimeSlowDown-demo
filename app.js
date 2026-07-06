@@ -47,16 +47,22 @@
     state.mode = 'empty';
     state.moments = [];
     saveMode('empty');
+    loadMoments();  // 加载之前存的瞬间
     saveMoments();
   }
 
-  // v3.13 数据持久化（empty mode 下用户的真实 Mark）
+  // v3.13/v3.15 数据持久化（empty mode 下用户的真实 Mark + 周章节）
   function saveMoments() {
-    if (state.mode !== 'empty') return;  // demo mode 不持久化（陈雨数据是静态的）
+    if (state.mode !== 'empty') return;
     try {
-      // 只保存用户自己录入的瞬间（id 以 new- 或 bf- 开头），不含示例
       const userMoments = state.moments.filter(m => m.id.startsWith('new-') || m.id.startsWith('bf-'));
       localStorage.setItem('tsd_user_moments', JSON.stringify(userMoments));
+      // 也持久化周章节（key 以 user-wc- 开头区分示例）
+      const userChapters = {};
+      for (const [k, v] of Object.entries(WEEK_CHAPTERS)) {
+        if (k >= '2026-W27') userChapters[k] = v;  // 只存当前周及之后（示例数据在之前）
+      }
+      localStorage.setItem('tsd_user_chapters', JSON.stringify(userChapters));
     } catch (e) {}
   }
   function loadMoments() {
@@ -65,6 +71,11 @@
       const saved = localStorage.getItem('tsd_user_moments');
       if (saved) {
         state.moments = JSON.parse(saved);
+      }
+      const savedCh = localStorage.getItem('tsd_user_chapters');
+      if (savedCh) {
+        const userCh = JSON.parse(savedCh);
+        for (const [k, v] of Object.entries(userCh)) WEEK_CHAPTERS[k] = v;
       }
     } catch (e) {}
   }
@@ -734,6 +745,7 @@
     m.level = 1;
     m.why = why;
     m.toldAt = todayStr();
+    saveMoments();
     closeUpgrade();
     renderTell();
     // 静默反馈
@@ -843,6 +855,7 @@
         body,
         growth: 'new_branch',
       };
+      saveMoments();
 
       // 第 3 步：展示成果
       card.querySelector('#wc-step-2').style.display = 'none';
@@ -1353,6 +1366,7 @@
         why: text,
       };
       state.moments.push(newM);
+      saveMoments();
       ov.classList.remove('show');
       renderMeadow();
       const done = document.getElementById('compose-done');
@@ -1705,6 +1719,7 @@
       why: level >= 1 ? text : null,
     };
     state.moments.unshift(newM);
+    saveMoments();
 
     // 反馈（R2：静默，不发奖励）
     const done = document.getElementById('compose-done');
@@ -1942,6 +1957,8 @@
       try {
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem('tsd_feedback');
+        localStorage.removeItem('tsd_user_moments');
+        localStorage.removeItem('tsd_user_chapters');
       } catch (e) {}
       location.reload();
     });
@@ -2072,3 +2089,10 @@
 
   document.addEventListener('DOMContentLoaded', init);
 })();
+
+// v3.15 Service Worker 注册（离线可用）
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
