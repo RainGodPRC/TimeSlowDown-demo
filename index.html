@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=18" />
+  <link rel="stylesheet" href="styles.css?v=19" />
 </head>
 <body>
 
@@ -113,6 +113,9 @@
               <span id="plain-icon-archive">🌿</span>
             </button>
           </header>
+          <div class="archive-search-bar">
+            <input type="text" id="archive-search" class="archive-search-input" placeholder="🔍 搜索瞬间、人、地点、心情..." />
+          </div>
           <div class="archive-intro">所有留下来的瞬间，按时间倒序。</div>
           <div class="archive-scroll">
             <div id="archive-list"></div>
@@ -141,6 +144,14 @@
               <input type="checkbox" id="compose-first" />
               <span>这是我的一个「第一次」</span>
             </label>
+            <div class="compose-section-label">这一天是 <span class="label-hint">（可选）</span></div>
+            <div class="weather-row" id="weather-row">
+              <button class="weather-chip" data-weather="sunny">☀️ 晴</button>
+              <button class="weather-chip active" data-weather="plain">🌤️ 平常</button>
+              <button class="weather-chip" data-weather="foggy">🌫️ 雾</button>
+              <button class="weather-chip" data-weather="rainy">🌧️ 雨</button>
+              <button class="weather-chip" data-weather="night">🌌 夜</button>
+            </div>
             <div class="compose-hint">
               💡 <b>只留一张照片也算</b>。<br/>
               想说更多时再说一句话。<br/>
@@ -217,7 +228,7 @@
   </div>
 </div>
 
-<script src="data.js?v=18"></script>
-<script src="app.js?v=18"></script>
+<script src="data.js?v=19"></script>
+<script src="app.js?v=19"></script>
 </body>
 </html>

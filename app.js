@@ -31,6 +31,8 @@
     weekSkipped: false,
     scanDisabled: false,       // v3.6 反 streak：用户关掉今晚扫描
     scanIgnoredToday: false,   // v3.6 反 streak：用户当日已忽略
+    archiveQuery: '',          // v3.10 搜索
+    selectedWeather: 'plain',  // v3.10 情绪天气
   };
 
   // 进入示例模式：填陈雨数据
@@ -1440,8 +1442,20 @@
   // 视图 3：原料（河流列表）
   // ============================================================
   function renderArchive() {
-    const sorted = [...state.moments].sort((a, b) => b.date.localeCompare(a.date));
     const list = document.getElementById('archive-list');
+    const query = (state.archiveQuery || '').trim().toLowerCase();
+    let sorted = [...state.moments].sort((a, b) => b.date.localeCompare(a.date));
+    if (query) {
+      sorted = sorted.filter(m => {
+        const hay = [
+          m.text, m.why || '', m.location || '',
+          (m.people || []).join(' '),
+          MOODS[m.mood]?.label || '',
+          m.date,
+        ].join(' ').toLowerCase();
+        return hay.includes(query);
+      });
+    }
 
     // 空状态
     if (sorted.length === 0) {
@@ -1457,10 +1471,11 @@
 
     list.innerHTML = sorted.map(m => {
       const mood = MOODS[m.mood];
-      // 去术语化：不再用 L0/L1/L2，改人话
+      // 去术语化
       const levelBadge = m.toldAt
         ? `<span class="level-badge-mini ${m.level === 2 ? 'l2' : 'l1'}">${m.level === 2 ? '留过原声' : '讲过'}</span>`
         : `<span class="level-badge-mini l0">已 Mark</span>`;
+      const weatherEmoji = { sunny: '☀️', plain: '🌤️', foggy: '🌫️', rainy: '🌧️', night: '🌌' }[m.weather] || '';
       return `
         <div class="archive-card">
           ${m.image ? `<img class="archive-card-image" src="${m.image}" alt="" loading="lazy"/>` : ''}
@@ -1469,6 +1484,7 @@
             ${m.why ? `<div class="archive-card-why">"${escapeHtml(m.why)}"</div>` : ''}
             <div class="archive-card-meta">
               <span>${mood.emoji} ${mood.label}</span>
+              ${weatherEmoji ? `<span>${weatherEmoji}</span>` : ''}
               ${levelBadge}
               ${m.location && m.location !== '—' ? `<span>· ${escapeHtml(m.location)}</span>` : ''}
               ${m.people && m.people.length ? `<span>· ${m.people.map(escapeHtml).join('、')}</span>` : ''}
@@ -1499,7 +1515,10 @@
     document.getElementById('compose-image-slot').style.border = '1px dashed var(--line)';
     document.getElementById('compose-image-slot').style.background = 'var(--bg-warm)';
     document.querySelectorAll('.mood-chip').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll('.weather-chip').forEach(c => c.classList.remove('selected'));
+    document.querySelector('.weather-chip[data-weather="plain"]')?.classList.add('active');
     state.selectedMood = null;
+    state.selectedWeather = 'plain';
   }
 
   function saveCompose() {
@@ -1524,6 +1543,7 @@
       date: todayStr(),
       text: text || '（仅 Mark）',
       mood: state.selectedMood || 'warm',
+      weather: state.selectedWeather || 'plain',
       location: '—',
       people: people ? people.split(/[、,，]/).map(s => s.trim()).filter(Boolean) : [],
       isFirst,
@@ -1651,6 +1671,24 @@
     document.getElementById('meadow-canvas').addEventListener('click', e => {
       const cell = e.target.closest('[data-week]');
       if (cell) openBackfill(parseInt(cell.dataset.week, 10));
+    });
+
+    // 搜索（v3.10）
+    const searchInput = document.getElementById('archive-search');
+    if (searchInput) {
+      searchInput.addEventListener('input', e => {
+        state.archiveQuery = e.target.value;
+        renderArchive();
+      });
+    }
+
+    // 天气选择（v3.10 情绪语法）
+    document.getElementById('weather-row')?.addEventListener('click', e => {
+      const chip = e.target.closest('.weather-chip');
+      if (!chip) return;
+      document.querySelectorAll('.weather-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('selected');
+      state.selectedWeather = chip.dataset.weather;
     });
 
     // 录入
