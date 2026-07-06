@@ -7,7 +7,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=19" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="TSD" />
+  <meta name="theme-color" content="#c8873c" />
+  <meta name="description" content="让走过的时间，长成你的人生。" />
+  <link rel="stylesheet" href="styles.css?v=21" />
 </head>
 <body>
 
@@ -51,6 +58,16 @@
   <div class="phone-shell">
     <div class="phone-notch"></div>
     <div class="phone-screen">
+
+      <!-- 启动屏（v3.11）-->
+      <div class="splash" id="splash">
+        <div class="splash-mark">TSD</div>
+        <div class="splash-name">Time Slow Down</div>
+        <div class="splash-slogan">让走过的时间，长成你的人生。</div>
+      </div>
+
+      <!-- toast 容器 -->
+      <div class="toast" id="toast"></div>
 
       <div class="status-bar">
         <span class="status-time">21:14</span>

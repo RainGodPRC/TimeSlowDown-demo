@@ -1822,6 +1822,15 @@
   // ============================================================
   // 启动
   // ============================================================
+  // 轻提示 toast
+  function showToast(text, duration = 2000) {
+    const t = document.getElementById('toast');
+    if (!t) return;
+    t.textContent = text;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), duration);
+  }
+
   function init() {
     renderComposeMoods();
     bindEvents();
@@ -1837,6 +1846,12 @@
       // 已经走过 onboarding（'demo' 或 'empty'）→ 直接进 tell
       switchView('tell');
     }
+
+    // v3.11：splash 在 1.7 秒后强制移除（防止动画失败导致永久遮挡）
+    setTimeout(() => {
+      const sp = document.getElementById('splash');
+      if (sp) sp.remove();
+    }, 1800);
   }
 
   // 暴露分享函数给 onclick

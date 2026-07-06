@@ -2002,3 +2002,121 @@ html, body {
 .weather-chip[data-weather="foggy"].selected { background: #9aa5b3; border-color: #9aa5b3; }
 .weather-chip[data-weather="rainy"].selected { background: #5d7a9b; border-color: #5d7a9b; }
 .weather-chip[data-weather="night"].selected { background: #2d3a55; border-color: #2d3a55; }
+
+/* ============================================================
+   v3.11：质感打磨 - splash + 动画 + 触感
+   ============================================================ */
+
+/* 启动屏 */
+.splash {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(180deg, #faf6ef 0%, #f0e6d0 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: splashFade 0.5s ease 1.2s forwards;
+}
+@keyframes splashFade {
+  to { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+.splash-mark {
+  width: 88px; height: 88px;
+  background: var(--amber);
+  color: #fff;
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: 32px;
+  border-radius: 22px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 18px;
+  animation: splashPop 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  box-shadow: 0 12px 30px rgba(200, 135, 60, 0.4);
+  letter-spacing: 2px;
+}
+@keyframes splashPop {
+  0% { transform: scale(0.7); opacity: 0; }
+  60% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.splash-name {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+  animation: splashPop 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.2) 0.1s backwards;
+}
+.splash-slogan {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  color: var(--amber-deep);
+  font-style: italic;
+  animation: splashPop 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.2) 0.2s backwards;
+}
+
+/* 视图切换动画升级（slide + fade） */
+.view {
+  transition: opacity 0.28s ease, transform 0.28s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.view:not(.active) {
+  transform: translateX(24px) scale(0.98);
+}
+
+/* 全局按钮触感反馈 */
+button {
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+button:active:not(:disabled) {
+  transform: scale(0.96);
+  opacity: 0.85;
+}
+
+/* 卡片触感 */
+.memory-card, .told-card, .untold-card, .archive-card,
+.chapter-card, .week-chapter-invite, .week-chapter-done,
+.people-card, .theme-card, .night-scan-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.memory-card:active, .told-card:active, .untold-card:active,
+.archive-card:active, .chapter-card:active {
+  transform: scale(0.99);
+}
+
+/* skeleton 骨架屏（用于首次渲染前） */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-warm) 25%, #ebe2cf 50%, var(--bg-warm) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--r-sm);
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* toast 横幅（轻提示） */
+.toast {
+  position: absolute;
+  bottom: 110px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--ink);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-size: 12px;
+  opacity: 0;
+  transition: all 0.3s ease;
+  z-index: 500;
+  pointer-events: none;
+  max-width: 280px;
+  text-align: center;
+}
+.toast.show {
+  opacity: 0.95;
+  transform: translateX(-50%) translateY(0);
+}
