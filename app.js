@@ -1543,7 +1543,14 @@
   // 列表视图（默认）
   function renderArchiveList(sorted) {
     const list = document.getElementById('archive-list');
-    list.innerHTML = sorted.map((m, idx) => {
+    // 过滤掉"收起"的瞬间（软删除）
+    const visible = sorted.filter(m => !m.archived);
+    if (visible.length === 0 && sorted.length > 0) {
+      list.innerHTML = `<div class="archive-empty"><div style="font-size:32px;margin-bottom:12px">📦</div><div>所有瞬间都被收起了</div><div style="margin-top:8px">点底部"收起的瞬间"可以恢复</div></div>`;
+      return;
+    }
+
+    list.innerHTML = visible.map((m, idx) => {
       const mood = MOODS[m.mood];
       const levelBadge = m.toldAt
         ? `<span class="level-badge-mini ${m.level === 2 ? 'l2' : 'l1'}">${m.level === 2 ? '留过原声' : '讲过'}</span>`
@@ -1564,10 +1571,22 @@
               ${m.isFirst ? `<span class="first-badge">第一次</span>` : ''}
               <span>· ${fmtDate(m.date)}</span>
             </div>
+            <div class="archive-card-actions">
+              <button class="archive-action-btn" data-edit="${m.id}">✏️ 编辑</button>
+              <button class="archive-action-btn archive-action-tuck" data-tuck="${m.id}">📦 收起</button>
+            </div>
           </div>
         </div>
       `;
     }).join('');
+
+    // 绑定编辑/收起
+    list.querySelectorAll('[data-edit]').forEach(btn => {
+      btn.addEventListener('click', () => openEditMoment(btn.dataset.edit));
+    });
+    list.querySelectorAll('[data-tuck]').forEach(btn => {
+      btn.addEventListener('click', () => archiveMoment(btn.dataset.tuck));
+    });
   }
 
   // 照片墙（瀑布流，CSS columns）
@@ -1664,7 +1683,142 @@
   }
 
   // ============================================================
-  // 录入（B：Mark 优先）
+  // v3.17 编辑 + 软删除（收起）+ 恢复
+  // ============================================================
+
+  // 编辑瞬间
+  function openEditMoment(id) {
+    const m = getMoment(id);
+    if (!m) return;
+    const ov = document.getElementById('upgrade-overlay');
+    const card = ov.querySelector('.upgrade-card');
+    const mood = MOODS[m.mood];
+
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-title">编辑这个瞬间</span>
+        <button class="upgrade-close" id="edit-close">×</button>
+      </div>
+      <div class="upgrade-body">
+        ${m.image ? `<img src="${m.image}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:var(--r-sm);margin-bottom:14px"/>` : ''}
+        <div class="compose-section-label">这一刻发生了什么</div>
+        <textarea class="wc-note-input" id="edit-text" rows="2">${escapeHtml(m.text)}</textarea>
+        <div class="compose-section-label">为什么重要（"为什么"是讲述的核心）</div>
+        <textarea class="wc-note-input" id="edit-why" rows="2" placeholder="补充一句话">${escapeHtml(m.why || '')}</textarea>
+        <div class="compose-section-label">心情</div>
+        <div class="compose-mood-row" id="edit-mood-row">
+          ${Object.entries(MOODS).map(([k, mm]) => `<button class="mood-chip ${k === m.mood ? 'selected' : ''}" data-mood="${k}">${mm.emoji} ${mm.label}</button>`).join('')}
+        </div>
+        <div class="compose-section-label">和谁（可选）</div>
+        <input class="wc-title-input" id="edit-people" value="${escapeHtml((m.people || []).join('、'))}" style="font-family:var(--font-sans);font-size:14px" />
+        <div class="compose-section-label">地点（可选）</div>
+        <input class="wc-title-input" id="edit-location" value="${m.location && m.location !== '—' ? escapeHtml(m.location) : ''}" style="font-family:var(--font-sans);font-size:14px" />
+        <label class="compose-first-check">
+          <input type="checkbox" id="edit-first" ${m.isFirst ? 'checked' : ''} />
+          <span>这是我的一个「第一次」</span>
+        </label>
+        <button class="upgrade-btn" id="edit-save">保存修改</button>
+        <p class="upgrade-hint">改完不影响它已经讲过的故事——那部分是你的。</p>
+      </div>
+    `;
+    ov.classList.add('show');
+
+    let editMood = m.mood;
+    card.querySelectorAll('#edit-mood-row .mood-chip').forEach(c => {
+      c.addEventListener('click', () => {
+        card.querySelectorAll('#edit-mood-row .mood-chip').forEach(x => x.classList.remove('selected'));
+        c.classList.add('selected');
+        editMood = c.dataset.mood;
+      });
+    });
+    card.querySelector('#edit-close').addEventListener('click', () => ov.classList.remove('show'));
+    card.querySelector('#edit-save').addEventListener('click', () => {
+      m.text = card.querySelector('#edit-text').value.trim() || m.text;
+      m.why = card.querySelector('#edit-why').value.trim();
+      m.mood = editMood;
+      m.people = card.querySelector('#edit-people').value.trim() ? card.querySelector('#edit-people').value.trim().split(/[、,，]/).map(s=>s.trim()).filter(Boolean) : [];
+      m.location = card.querySelector('#edit-location').value.trim() || '—';
+      m.isFirst = card.querySelector('#edit-first').checked;
+      saveMoments();
+      ov.classList.remove('show');
+      renderArchive();
+      showToast('已更新');
+    });
+  }
+
+  // 软删除（收起）
+  function archiveMoment(id) {
+    const m = getMoment(id);
+    if (!m) return;
+    m.archived = true;
+    m.archivedAt = new Date().toISOString();
+    saveMoments();
+    renderArchive();
+    showToast('已收起 · 可在"收起的瞬间"恢复');
+  }
+
+  // 恢复页（收起的瞬间）
+  function showArchivedMoments() {
+    const ov = document.getElementById('upgrade-overlay');
+    const card = ov.querySelector('.upgrade-card');
+    const archived = state.moments.filter(m => m.archived);
+
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-title">收起的瞬间</span>
+        <button class="upgrade-close" id="arch-close">×</button>
+      </div>
+      <div class="upgrade-body">
+        ${archived.length === 0 ? `
+          <div class="archive-empty">
+            <div style="font-size:32px;margin-bottom:12px">📦</div>
+            <div>没有收起的瞬间</div>
+            <div style="margin-top:8px">收起的瞬间可以随时恢复——不会真正删除。</div>
+          </div>
+        ` : `
+          <p style="font-size:13px;color:var(--ink-soft);margin-bottom:16px;line-height:1.7">这些瞬间被你收起了，不在原料列表显示。可以随时恢复，也可以彻底删除。</p>
+          <div class="archived-list">
+            ${archived.map(m => {
+              const mood = MOODS[m.mood];
+              return `
+                <div class="archived-item">
+                  <div class="archived-body">
+                    <div class="archived-text">${mood.emoji} ${escapeHtml(m.text)}</div>
+                    <div class="archived-meta">${fmtDate(m.date)}</div>
+                  </div>
+                  <div class="archived-actions">
+                    <button class="archive-action-btn" data-restore="${m.id}">恢复</button>
+                    <button class="archive-action-btn archive-action-delete" data-destroy="${m.id}">彻底删除</button>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `}
+      </div>
+    `;
+    ov.classList.add('show');
+
+    card.querySelector('#arch-close').addEventListener('click', () => ov.classList.remove('show'));
+    card.querySelectorAll('[data-restore]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const m = getMoment(btn.dataset.restore);
+        if (m) { delete m.archived; delete m.archivedAt; saveMoments(); showArchivedMoments(); renderArchive(); }
+      });
+    });
+    card.querySelectorAll('[data-destroy]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.destroy;
+        state.moments = state.moments.filter(m => m.id !== id);
+        saveMoments();
+        showArchivedMoments();
+        renderArchive();
+        showToast('已彻底删除');
+      });
+    });
+  }
+
+
   // ============================================================
   function renderComposeMoods() {
     document.getElementById('compose-mood-row').innerHTML = Object.entries(MOODS).map(([k, m]) =>
@@ -1784,6 +1938,7 @@
               </div>
               <div class="setting-group">
                 <div class="setting-row"><span>导出我的记忆数据</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="export-link">JSON ›</span></div>
+                <div class="setting-row"><span>收起的瞬间</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="archived-link">恢复 / 删除 ›</span></div>
                 <div class="setting-row"><span>反馈 / 建议</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="feedback-link">写一句 ›</span></div>
                 <div class="setting-row"><span>隐私政策</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="privacy-link">查看 ›</span></div>
                 <div class="setting-row"><span style="color:#c54455">彻底清除所有数据</span><span style="font-size:11px;color:var(--ink-faint);cursor:pointer" id="wipe-link">不可恢复 ›</span></div>
@@ -1826,6 +1981,9 @@
             // v3.12 彻底清除
             const wl = v.querySelector('#wipe-link');
             if (wl) wl.addEventListener('click', wipeAllData);
+            // v3.17 收起的瞬间
+            const al2 = v.querySelector('#archived-link');
+            if (al2) al2.addEventListener('click', showArchivedMoments);
           }
           switchView('settings');
         } else if (target) {
