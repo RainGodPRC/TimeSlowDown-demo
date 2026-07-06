@@ -2356,3 +2356,261 @@ button:active:not(:disabled) {
   opacity: 0.95;
   transform: translateX(-50%) translateY(0);
 }
+
+/* ============================================================
+   v3.14：照片墙 + 地图视图 + 视图切换控件
+   ============================================================ */
+
+/* 视图切换控件 */
+.archive-view-toggle {
+  display: flex;
+  gap: 2px;
+  background: var(--bg-warm);
+  padding: 3px;
+  border-radius: var(--r-sm);
+}
+.archive-view-pill {
+  border: none;
+  background: none;
+  padding: 5px 12px;
+  font-size: 16px;
+  color: var(--ink-faint);
+  cursor: pointer;
+  border-radius: var(--r-xs);
+  font-family: var(--font-sans);
+  transition: all 0.2s var(--ease-out);
+  line-height: 1;
+}
+.archive-view-pill.active {
+  background: #fff;
+  color: var(--amber-deep);
+  box-shadow: var(--shadow-xs);
+}
+
+/* === 照片墙（瀑布流 CSS columns）=== */
+.photo-wall {
+  column-count: 2;
+  column-gap: 8px;
+  margin-bottom: 20px;
+}
+.photo-wall-item {
+  break-inside: avoid;
+  margin-bottom: 8px;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  position: relative;
+  background: var(--bg-paper);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform 0.3s var(--ease-out), box-shadow 0.3s ease;
+}
+.photo-wall-item:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: var(--shadow-lg);
+}
+.photo-wall-item:hover .photo-wall-overlay {
+  opacity: 1;
+}
+@keyframes wallEnter {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.photo-wall-img {
+  width: 100%;
+  display: block;
+  transition: transform 0.5s var(--ease-out);
+}
+.photo-wall-img.tall { aspect-ratio: 3/4; object-fit: cover; }
+.photo-wall-img:not(.tall) { aspect-ratio: 1/1; object-fit: cover; }
+.photo-wall-item:hover .photo-wall-img {
+  transform: scale(1.08);
+}
+.photo-wall-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 50%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 10px 12px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.photo-wall-emoji {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+.photo-wall-text {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #fff;
+  font-weight: 500;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.photo-wall-date {
+  font-size: 10px;
+  color: rgba(255,255,255,0.7);
+  margin-top: 4px;
+}
+.photo-wall-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--bloom);
+  color: #fff;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  box-shadow: 0 2px 8px rgba(217, 122, 133, 0.5);
+}
+.photo-wall-first {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: var(--moss);
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.photo-wall-text-only {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: var(--bg-paper);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line-soft);
+}
+.pw-text-item {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+.pw-text-item:last-child { border-bottom: none; }
+.pw-date {
+  font-size: 10px;
+  color: var(--ink-faint);
+  margin-left: 6px;
+}
+
+/* === 地图视图（抽象空间）=== */
+.map-view {
+  display: flex;
+  flex-direction: column;
+}
+.map-canvas {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1/1;
+  background:
+    radial-gradient(circle at 30% 40%, rgba(232, 200, 154, 0.15), transparent 50%),
+    radial-gradient(circle at 70% 60%, rgba(168, 192, 160, 0.1), transparent 50%),
+    linear-gradient(135deg, #f5efe0 0%, #ebe2c8 100%);
+  border-radius: var(--r-lg);
+  margin-bottom: 20px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.map-canvas::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(200, 135, 60, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200, 135, 60, 0.04) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+.map-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: transform 0.3s var(--ease-spring);
+}
+.map-pin:hover {
+  transform: translate(-50%, -50%) scale(1.15);
+  z-index: 10;
+}
+@keyframes pinDrop {
+  from { opacity: 0; transform: translate(-50%, -150%) scale(0.5); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+.map-pin-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--amber) 0%, var(--amber-deep) 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(200, 135, 60, 0.4);
+  border: 2px solid #fff;
+}
+.map-pin-label {
+  font-size: 10px;
+  color: var(--ink);
+  background: rgba(255, 253, 248, 0.95);
+  padding: 2px 6px;
+  border-radius: var(--r-xs);
+  margin-top: 4px;
+  white-space: nowrap;
+  box-shadow: var(--shadow-xs);
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.map-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.map-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-paper);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line-soft);
+  font-size: 13px;
+  transition: all 0.2s ease;
+}
+.map-legend-item:hover {
+  border-color: var(--amber-soft);
+  transform: translateX(3px);
+}
+.map-legend-emoji { font-size: 14px; }
+.map-legend-loc {
+  flex: 1;
+  color: var(--ink);
+  font-weight: 500;
+}
+.map-legend-count {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+/* 视图淡入淡出切换 */
+#archive-list {
+  animation: archiveFade 0.35s var(--ease-out);
+}
+@keyframes archiveFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}

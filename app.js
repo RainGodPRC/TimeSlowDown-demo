@@ -32,6 +32,7 @@
     scanDisabled: false,       // v3.6 反 streak：用户关掉今晚扫描
     scanIgnoredToday: false,   // v3.6 反 streak：用户当日已忽略
     archiveQuery: '',          // v3.10 搜索
+    archiveView: 'list',       // v3.14 list | wall | map
     selectedWeather: 'plain',  // v3.10 情绪天气
   };
 
@@ -1484,6 +1485,7 @@
   // ============================================================
   function renderArchive() {
     const list = document.getElementById('archive-list');
+    const intro = document.getElementById('archive-intro');
     const query = (state.archiveQuery || '').trim().toLowerCase();
     let sorted = [...state.moments].sort((a, b) => b.date.localeCompare(a.date));
     if (query) {
@@ -1498,27 +1500,43 @@
       });
     }
 
+    // 更新 intro 文案
+    const viewLabels = { list: '按时间倒序', wall: '照片墙', map: '地图视图' };
+    if (intro) intro.textContent = sorted.length + ' 个瞬间 · ' + (viewLabels[state.archiveView] || '');
+
     // 空状态
     if (sorted.length === 0) {
       list.innerHTML = `
         <div class="archive-empty">
           <div style="font-size:32px;margin-bottom:12px">📜</div>
-          <div>这里还没有留下任何瞬间。</div>
-          <div style="margin-top:8px">按底部 ＋ Mark 你的第一个。</div>
+          <div>${query ? '没找到匹配"' + escapeHtml(state.archiveQuery) + '"的瞬间' : '这里还没有留下任何瞬间'}</div>
+          <div style="margin-top:8px">${query ? '试试别的关键词' : '按底部 ＋ Mark 你的第一个'}</div>
         </div>
       `;
       return;
     }
 
-    list.innerHTML = sorted.map(m => {
+    // 三种视图
+    if (state.archiveView === 'wall') {
+      renderArchiveWall(sorted);
+    } else if (state.archiveView === 'map') {
+      renderArchiveMap(sorted);
+    } else {
+      renderArchiveList(sorted);
+    }
+  }
+
+  // 列表视图（默认）
+  function renderArchiveList(sorted) {
+    const list = document.getElementById('archive-list');
+    list.innerHTML = sorted.map((m, idx) => {
       const mood = MOODS[m.mood];
-      // 去术语化
       const levelBadge = m.toldAt
         ? `<span class="level-badge-mini ${m.level === 2 ? 'l2' : 'l1'}">${m.level === 2 ? '留过原声' : '讲过'}</span>`
         : `<span class="level-badge-mini l0">已 Mark</span>`;
       const weatherEmoji = { sunny: '☀️', plain: '🌤️', foggy: '🌫️', rainy: '🌧️', night: '🌌' }[m.weather] || '';
       return `
-        <div class="archive-card">
+        <div class="archive-card" style="animation: cardEnter 0.4s var(--ease-out) ${idx * 0.04}s both">
           ${m.image ? `<img class="archive-card-image" src="${m.image}" alt="" loading="lazy"/>` : ''}
           <div class="archive-card-body">
             <div class="archive-card-text">${escapeHtml(m.text)}</div>
@@ -1536,6 +1554,99 @@
         </div>
       `;
     }).join('');
+  }
+
+  // 照片墙（瀑布流，CSS columns）
+  function renderArchiveWall(sorted) {
+    const list = document.getElementById('archive-list');
+    const withImages = sorted.filter(m => m.image);
+    const withoutImages = sorted.filter(m => !m.image);
+
+    if (withImages.length === 0) {
+      list.innerHTML = `<div class="archive-empty"><div style="font-size:32px;margin-bottom:12px">📷</div><div>还没有留过照片</div><div style="margin-top:8px">Mark 一张照片后，这里会出现照片墙</div></div>`;
+      return;
+    }
+
+    list.innerHTML = `
+      <div class="photo-wall">
+        ${withImages.map((m, idx) => {
+          const mood = MOODS[m.mood];
+          const isTall = idx % 3 === 0;  // 错落感
+          return `
+            <div class="photo-wall-item" style="animation: wallEnter 0.5s var(--ease-out) ${idx * 0.05}s both">
+              <img class="photo-wall-img ${isTall ? 'tall' : ''}" src="${m.image}" alt="" loading="lazy"/>
+              <div class="photo-wall-overlay">
+                <div class="photo-wall-emoji">${mood.emoji}</div>
+                <div class="photo-wall-text">${escapeHtml(m.text.slice(0, 40))}</div>
+                <div class="photo-wall-date">${fmtDate(m.date)}${m.people && m.people.length ? ' · ' + m.people.map(escapeHtml).join('、') : ''}</div>
+              </div>
+              ${m.toldAt ? '<div class="photo-wall-badge">🌸</div>' : ''}
+              ${m.isFirst ? '<div class="photo-wall-first">第一次</div>' : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+      ${withoutImages.length > 0 ? `
+        <div class="section-label" style="margin-top:24px">没有照片的瞬间 (${withoutImages.length})</div>
+        <div class="photo-wall-text-only">
+          ${withoutImages.map(m => {
+            const mood = MOODS[m.mood];
+            return `<div class="pw-text-item">${mood.emoji} ${escapeHtml(m.text.slice(0, 50))} <span class="pw-date">${fmtDate(m.date)}</span></div>`;
+          }).join('')}
+        </div>
+      ` : ''}
+    `;
+  }
+
+  // 地图视图（抽象网格——按 location 聚类，无真实地图依赖）
+  function renderArchiveMap(sorted) {
+    const list = document.getElementById('archive-list');
+    const located = sorted.filter(m => m.location && m.location !== '—');
+    if (located.length === 0) {
+      list.innerHTML = `<div class="archive-empty"><div style="font-size:32px;margin-bottom:12px">📍</div><div>还没有标记地点的瞬间</div><div style="margin-top:8px">Mark 时加上地点，这里会显示地图</div></div>`;
+      return;
+    }
+
+    // 按 location 聚类
+    const locMap = {};
+    for (const m of located) {
+      if (!locMap[m.location]) locMap[m.location] = [];
+      locMap[m.location].push(m);
+    }
+    const locs = Object.entries(locMap).sort((a, b) => b[1].length - a[1].length);
+
+    list.innerHTML = `
+      <div class="map-view">
+        <div class="map-canvas">
+          ${locs.map(([loc, ms], idx) => {
+            const angle = (idx * 137.5) % 360;  // 黄金角分布
+            const radius = 20 + (idx % 3) * 18;
+            const x = 50 + Math.cos(angle * Math.PI / 180) * radius;
+            const y = 50 + Math.sin(angle * Math.PI / 180) * radius;
+            const size = Math.min(80, 30 + ms.length * 8);
+            return `
+              <div class="map-pin" style="
+                left: ${x}%; top: ${y}%;
+                width: ${size}px; height: ${size}px;
+                animation: pinDrop 0.6s var(--ease-spring) ${idx * 0.1}s both;
+              " data-loc="${escapeHtml(loc)}">
+                <div class="map-pin-inner">${ms.length}</div>
+                <div class="map-pin-label">${escapeHtml(loc)}</div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <div class="map-legend">
+          ${locs.map(([loc, ms]) => `
+            <div class="map-legend-item">
+              <span class="map-legend-emoji">📍</span>
+              <span class="map-legend-loc">${escapeHtml(loc)}</span>
+              <span class="map-legend-count">${ms.length} 个瞬间</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
   }
 
   // ============================================================
@@ -1726,6 +1837,16 @@
         renderArchive();
       });
     }
+
+    // 视图切换（v3.14）
+    document.querySelectorAll('.archive-view-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.archive-view-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.archiveView = btn.dataset.aview;
+        renderArchive();
+      });
+    });
 
     // 天气选择（v3.10 情绪语法）
     document.getElementById('weather-row')?.addEventListener('click', e => {

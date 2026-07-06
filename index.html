@@ -7,7 +7,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -126,14 +125,16 @@
         <section class="view view-archive" data-view="archive">
           <header class="view-header">
             <div class="view-title">原料</div>
-            <button class="icon-btn" id="plain-toggle-archive">
-              <span id="plain-icon-archive">🌿</span>
-            </button>
+            <div class="archive-view-toggle">
+              <button class="archive-view-pill active" data-aview="list" title="列表">≡</button>
+              <button class="archive-view-pill" data-aview="wall" title="照片墙">▦</button>
+              <button class="archive-view-pill" data-aview="map" title="地图">📍</button>
+            </div>
           </header>
           <div class="archive-search-bar">
             <input type="text" id="archive-search" class="archive-search-input" placeholder="🔍 搜索瞬间、人、地点、心情..." />
           </div>
-          <div class="archive-intro">所有留下来的瞬间，按时间倒序。</div>
+          <div class="archive-intro" id="archive-intro">所有留下来的瞬间，按时间倒序。</div>
           <div class="archive-scroll">
             <div id="archive-list"></div>
           </div>
