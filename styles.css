@@ -2675,3 +2675,83 @@ button:active:not(:disabled) {
 }
 .archived-meta { font-size: 10px; color: var(--ink-faint); }
 .archived-actions { display: flex; flex-direction: column; gap: 4px; }
+
+/* v3.18 人生格子入口卡 */
+.life-grid-entry {
+  background: linear-gradient(135deg, rgba(253, 246, 232, 0.9) 0%, rgba(245, 230, 200, 0.85) 100%);
+  border-radius: var(--r-lg);
+  padding: 16px 18px;
+  margin: 20px 0 14px;
+  border: 1px solid rgba(232, 200, 154, 0.4);
+  box-shadow: var(--shadow-sm);
+}
+.lge-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.lge-emoji { font-size: 18px; }
+.lge-title {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.lge-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-bottom: 12px;
+}
+.lge-stats b {
+  color: var(--amber-deep);
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 600;
+}
+.lge-sub {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+.lge-preview {
+  display: grid;
+  grid-template-columns: repeat(26, 1fr);
+  gap: 1.5px;
+  background: rgba(255,255,255,0.4);
+  padding: 6px;
+  border-radius: var(--r-xs);
+  margin-bottom: 12px;
+}
+.lge-cell {
+  aspect-ratio: 1;
+  background: rgba(255,255,255,0.5);
+  border-radius: 1px;
+}
+.lge-cell.filled { background: var(--amber); }
+.lge-cell.filled-deep { background: var(--moss); }
+.lge-cell.now {
+  background: var(--amber);
+  box-shadow: 0 0 0 1px var(--amber), 0 0 4px rgba(200,135,60,0.8);
+  animation: nowPulse 2s ease-in-out infinite;
+}
+.lge-btn {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--amber-soft);
+  color: var(--amber-deep);
+  padding: 8px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: all 0.2s;
+}
+.lge-btn:hover {
+  background: var(--amber-soft);
+  color: #fff;
+}

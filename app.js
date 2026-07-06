@@ -49,6 +49,12 @@
     saveMode('empty');
     loadMoments();  // 加载之前存的瞬间
     saveMoments();
+    // v3.18 首次进入 empty mode 提示登记生日
+    try {
+      if (!localStorage.getItem('tsd_user_birth') && !localStorage.getItem('tsd_birth_skipped')) {
+        setTimeout(showBirthRegistration, 500);
+      }
+    } catch(e) {}
   }
 
   // v3.13/v3.15 数据持久化（empty mode 下用户的真实 Mark + 周章节）
@@ -79,6 +85,43 @@
       }
     } catch (e) {}
   }
+
+  // v3.18 生日登记
+  function showBirthRegistration() {
+    const ov = document.getElementById('upgrade-overlay');
+    const card = ov.querySelector('.upgrade-card');
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-title">你的生日</span>
+      </div>
+      <div class="upgrade-body" style="text-align:center">
+        <div style="font-size:48px;margin:10px 0 14px">🎂</div>
+        <p style="font-family:var(--font-serif);font-size:18px;color:var(--ink);line-height:1.6;margin-bottom:6px">为了让你看到<br/>自己在人生格子里的位置</p>
+        <p style="font-size:13px;color:var(--ink-soft);margin-bottom:20px;line-height:1.6">登记生日后，TSD 会自动计算你的人生第几周——每 Mark 一个瞬间，对应的格子会被点亮。</p>
+        <input type="date" id="birth-input" class="wc-title-input" style="text-align:center;font-family:var(--font-sans);font-size:18px;margin-bottom:16px" value="1990-01-01" max="${todayStr()}" />
+        <div style="display:flex;gap:8px">
+          <button class="upgrade-btn" id="birth-skip" style="background:var(--bg-warm);color:var(--ink-soft);flex:1">以后再说</button>
+          <button class="upgrade-btn" id="birth-save" style="flex:1">登记</button>
+        </div>
+        <p style="font-size:11px;color:var(--ink-faint);margin-top:14px">仅存在你的设备上，不上传任何服务器。</p>
+      </div>
+    `;
+    ov.classList.add('show');
+    card.querySelector('#birth-skip').addEventListener('click', () => {
+      try { localStorage.setItem('tsd_birth_skipped', '1'); } catch(e) {}
+      ov.classList.remove('show');
+    });
+    card.querySelector('#birth-save').addEventListener('click', () => {
+      const v = card.querySelector('#birth-input').value;
+      if (v) {
+        setUserBirth(v);
+        ov.classList.remove('show');
+        showToast('已登记 · 你在人生格子里有了位置');
+        renderTell();
+      }
+    });
+  }
+
   // 首启动根据 mode 决定 moments
   if (state.mode === 'demo') state.moments = JSON.parse(JSON.stringify(MOMENTS));
   else state.moments = [];
@@ -91,7 +134,22 @@
     const d = TODAY;
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
-  const BIRTH = parseDate(USER.birthDate);
+  // v3.18 生日：empty mode 从 localStorage 读用户登记的生日；demo 模式用陈雨的
+  function getUserBirth() {
+    if (state.mode === 'empty') {
+      try {
+        const saved = localStorage.getItem('tsd_user_birth');
+        if (saved) return parseDate(saved);
+      } catch (e) {}
+      return null;  // 还没登记
+    }
+    return parseDate(USER.birthDate);
+  }
+  function setUserBirth(dateStr) {
+    try { localStorage.setItem('tsd_user_birth', dateStr); } catch (e) {}
+  }
+  // 兼容旧代码：BIRTH 作为函数返回
+  function BIRTH() { return getUserBirth() || parseDate(USER.birthDate); }
 
   function isoWeek(d) {
     const t = new Date(d); t.setHours(0, 0, 0, 0);
@@ -662,6 +720,44 @@
       `);
     }
 
+    // v3.18 人生格子入口（讲述首页底部常驻）
+    const birth = getUserBirth();
+    if (birth) {
+      const nowWeek = Math.floor((TODAY.getTime() - birth.getTime()) / (7 * 24 * 60 * 60 * 1000));
+      const age = Math.floor((TODAY.getTime() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+      const recordedWeeks = new Set();
+      for (const m of state.moments) {
+        const w = Math.floor((parseDate(m.date).getTime() - birth.getTime()) / (7*24*60*60*1000));
+        if (w >= 0 && w < 4160) recordedWeeks.add(w);
+      }
+      html.push(`
+        <div class="life-grid-entry" id="life-grid-entry">
+          <div class="lge-header">
+            <span class="lge-emoji">🗓️</span>
+            <span class="lge-title">你的人生格子</span>
+          </div>
+          <div class="lge-stats">
+            <span><b>${age}</b> 岁 · 第 <b>${nowWeek}</b> 周</span>
+            <span><b>${recordedWeeks.size}</b> 周被点亮</span>
+          </div>
+          <div class="lge-preview" id="lge-preview"></div>
+          <button class="lge-btn" id="lge-btn">展开我的一生 ›</button>
+        </div>
+      `);
+    } else if (state.mode === 'empty') {
+      // empty mode 没登记生日——提示
+      html.push(`
+        <div class="life-grid-entry" id="life-grid-entry">
+          <div class="lge-header">
+            <span class="lge-emoji">🗓️</span>
+            <span class="lge-title">人生格子</span>
+          </div>
+          <p class="lge-sub">登记生日，看到你在人生格子里的位置——每 Mark 一个瞬间，对应的格子会被点亮。</p>
+          <button class="lge-btn" id="lge-register-btn">登记生日 ›</button>
+        </div>
+      `);
+    }
+
     // 跳过本周（R1）
     html.push(`
       <div class="skip-week">
@@ -695,6 +791,42 @@
     if (wcStart) wcStart.addEventListener('click', openWeekChapter);
     const wcView = document.getElementById('wc-view-btn');
     if (wcView) wcView.addEventListener('click', openWeekChapterRead);
+
+    // v3.18 人生格子入口
+    const lgeBtn = document.getElementById('lge-btn');
+    if (lgeBtn) lgeBtn.addEventListener('click', () => {
+      // 切到旷野 + life zoom
+      document.querySelector('.lens-pill[data-lens="time"]').click();
+      document.querySelector('.zoom-pill[data-zoom="life"]').click();
+      document.querySelector('.tab[data-tab="meadow"]').click();
+    });
+    const lgeRegBtn = document.getElementById('lge-register-btn');
+    if (lgeRegBtn) lgeRegBtn.addEventListener('click', showBirthRegistration);
+
+    // 渲染预览格子（迷你版 52 列）
+    const lgePreview = document.getElementById('lge-preview');
+    if (lgePreview) {
+      const birth = getUserBirth();
+      if (birth) {
+        const nowWeek = Math.floor((TODAY.getTime() - birth.getTime()) / (7*24*60*60*1000));
+        const wm = {};
+        for (const m of state.moments) {
+          const w = Math.floor((parseDate(m.date).getTime() - birth.getTime()) / (7*24*60*60*1000));
+          if (w >= 0 && w < 4160) wm[w] = (wm[w]||0)+1;
+        }
+        // 渲染最近 5 年的格子（260 周）
+        const startWeek = Math.max(0, nowWeek - 130);
+        const endWeek = Math.min(4160, nowWeek + 130);
+        let cells = '';
+        for (let w = startWeek; w < endWeek; w++) {
+          let cls = 'lge-cell';
+          if (w === nowWeek) cls += ' now';
+          else if (wm[w]) cls += wm[w] >= 2 ? ' filled-deep' : ' filled';
+          cells += `<div class="${cls}"></div>`;
+        }
+        lgePreview.innerHTML = cells;
+      }
+    }
   }
 
     // ============================================================
@@ -1272,12 +1404,12 @@
 
   // 一生地貌：人生格子可点击回填
   function renderLifeMeadow() {
-    const age = Math.floor((TODAY.getTime() - BIRTH.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-    const nowWeek = Math.floor((TODAY.getTime() - BIRTH.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    const age = Math.floor((TODAY.getTime() - BIRTH().getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    const nowWeek = Math.floor((TODAY.getTime() - BIRTH().getTime()) / (7 * 24 * 60 * 60 * 1000));
     const weekMap = {};
     for (const m of state.moments) {
       const d = parseDate(m.date);
-      const ms = d.getTime() - BIRTH.getTime();
+      const ms = d.getTime() - BIRTH().getTime();
       const w = Math.floor(ms / (7 * 24 * 60 * 60 * 1000));
       if (w >= 0 && w < 4160) weekMap[w] = (weekMap[w] || 0) + 1;
     }
@@ -1313,7 +1445,7 @@
   function openBackfill(weekIndex) {
     const ov = document.getElementById('upgrade-overlay');
     const card = ov.querySelector('.upgrade-card');
-    const birthDate = new Date(BIRTH.getTime() + weekIndex * 7 * 24 * 60 * 60 * 1000);
+    const birthDate = new Date(BIRTH().getTime() + weekIndex * 7 * 24 * 60 * 60 * 1000);
     const endDate = new Date(birthDate.getTime() + 7 * 24 * 60 * 60 * 1000);
     const fmtD = d => `${d.getFullYear()} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日`;
     const defaultDate = birthDate.toISOString().slice(0, 10);
