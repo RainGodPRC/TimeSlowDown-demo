@@ -5,7 +5,7 @@
 // ============================================================
 
 (() => {
-  const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, ONBOARDING } = window.__TSD_DATA__;
+  const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, ONBOARDING, NIGHT_SCAN, WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL } = window.__TSD_DATA__;
 
   // ============ 数据模式 ============
   // 'onboarding' 首启动 | 'empty' 空状态（用户自己用）| 'demo' 示例数据（陈雨）
@@ -581,6 +581,31 @@
       html.push('</div>');
     }
 
+    // 周末章节入口（D 论点核心：让用户亲自编译本周）
+    const weekChapterKey = weekKey(todayStr());
+    const hasWeekChapter = !!WEEK_CHAPTERS[weekChapterKey];
+    if (!hasWeekChapter && weekMoments.length >= 1 && !state.weekSkipped) {
+      html.push(`
+        <div class="week-chapter-invite">
+          <div class="wc-eyebrow">这一周即将过去</div>
+          <div class="wc-title">要不要把它编成一个故事？</div>
+          <div class="wc-sub">从本周的瞬间里挑 2-3 个，给这周起个名字——这就是这一周的故事。</div>
+          <button class="wc-start-btn" id="wc-start-btn">开始本周章节</button>
+          <p class="wc-hint">5 分钟之内能完成。也可以这周就算了。</p>
+        </div>
+      `);
+    } else if (hasWeekChapter) {
+      const ch = WEEK_CHAPTERS[weekChapterKey];
+      html.push(`
+        <div class="week-chapter-done">
+          <div class="wc-eyebrow">本周章节</div>
+          <div class="wc-title-done">${escapeHtml(ch.title)}</div>
+          <div class="wc-sub">${escapeHtml(ch.opening.slice(0, 100))}...</div>
+          <button class="wc-view-btn" id="wc-view-btn">阅读本周故事</button>
+        </div>
+      `);
+    }
+
     // 跳过本周（R1）
     html.push(`
       <div class="skip-week">
@@ -608,6 +633,12 @@
     scroll.querySelectorAll('.night-scan-item').forEach(item => {
       item.addEventListener('click', () => openUpgrade(item.dataset.upgrade));
     });
+
+    // v3.8：周末章节编译入口
+    const wcStart = document.getElementById('wc-start-btn');
+    if (wcStart) wcStart.addEventListener('click', openWeekChapter);
+    const wcView = document.getElementById('wc-view-btn');
+    if (wcView) wcView.addEventListener('click', openWeekChapterRead);
   }
 
     // ============================================================
@@ -668,6 +699,165 @@
   }
 
   // ============================================================
+  // 周末章节编译流（v3.8 核心：让用户亲自编出本周故事）
+  // ============================================================
+  function openWeekChapter() {
+    const overlay = document.getElementById('upgrade-overlay');
+    const card = overlay.querySelector('.upgrade-card');
+    const weekMoments = getWeekMoments();
+
+    // 用 upgrade-overlay 容器渲染周章节编辑器
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-title">本周章节</span>
+        <button class="upgrade-close" id="wc-close">×</button>
+      </div>
+      <div class="upgrade-body">
+        <div class="wc-step" id="wc-step-1">
+          <div class="compose-section-label">第 1 步 · 从本周瞬间里挑 2-3 个</div>
+          <p style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;line-height:1.7">这周哪些瞬间你想留住？挑出来，TSD 会帮你串成故事。</p>
+          <div class="wc-pick-list" id="wc-pick-list">
+            ${weekMoments.map(m => {
+              const mood = MOODS[m.mood];
+              return `
+                <div class="wc-pick-item" data-id="${m.id}">
+                  <div class="wc-pick-check"></div>
+                  ${m.image ? `<img class="wc-pick-thumb" src="${m.image}" alt=""/>` : '<div class="wc-pick-thumb-empty"></div>'}
+                  <div class="wc-pick-body">
+                    <div class="wc-pick-text">${mood.emoji} ${escapeHtml(m.text)}</div>
+                    <div class="wc-pick-meta">${fmtDate(m.date)}${m.people && m.people.length ? ' · ' + m.people.map(escapeHtml).join('、') : ''}</div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+          <button class="upgrade-btn" id="wc-next-1" disabled>挑好了（0/2）</button>
+        </div>
+
+        <div class="wc-step" id="wc-step-2" style="display:none">
+          <div class="compose-section-label">第 2 步 · 给这一周起个名字</div>
+          <p style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;line-height:1.7">不用正式，就一个名字。比如"一个人的电影院"、"梅雨结束的那一周"。</p>
+          <input class="wc-title-input" id="wc-title-input" placeholder="比如：和一束光待了一周" maxlength="20" />
+          <div class="compose-section-label" style="margin-top:18px">第 3 步 · 想补一句吗？ <span class="label-hint">（可选）</span></div>
+          <textarea class="wc-note-input" id="wc-note-input" placeholder="这周讲的是什么？不补也行。" maxlength="100" rows="3"></textarea>
+          <button class="upgrade-btn" id="wc-finish">编成故事</button>
+        </div>
+
+        <div class="wc-step" id="wc-step-3" style="display:none">
+          <div class="wc-done-icon">📖</div>
+          <div class="wc-done-title" id="wc-done-title"></div>
+          <div class="wc-done-body" id="wc-done-body"></div>
+          <button class="upgrade-btn" id="wc-done-close">回到这一周</button>
+        </div>
+      </div>
+    `;
+    overlay.classList.add('show');
+
+    // 第 1 步：挑瞬间
+    let picked = new Set();
+    const pickItems = card.querySelectorAll('.wc-pick-item');
+    pickItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const id = item.dataset.id;
+        if (picked.has(id)) {
+          picked.delete(id);
+          item.classList.remove('picked');
+        } else if (picked.size < 3) {
+          picked.add(id);
+          item.classList.add('picked');
+        }
+        const next = card.querySelector('#wc-next-1');
+        next.disabled = picked.size < 2;
+        next.textContent = `挑好了（${picked.size}/3）`;
+      });
+    });
+
+    card.querySelector('#wc-close').addEventListener('click', () => overlay.classList.remove('show'));
+    card.querySelector('#wc-next-1').addEventListener('click', () => {
+      card.querySelector('#wc-step-1').style.display = 'none';
+      card.querySelector('#wc-step-2').style.display = 'block';
+      card.querySelector('#wc-title-input').focus();
+    });
+
+    card.querySelector('#wc-finish').addEventListener('click', () => {
+      const title = card.querySelector('#wc-title-input').value.trim() || '这一周';
+      const note = card.querySelector('#wc-note-input').value.trim();
+      const pickedMoments = [...picked].map(id => getMoment(id)).filter(Boolean);
+
+      // 编译本周故事（忠实编辑，不编造）
+      const opening = compileWeekOpening(pickedMoments);
+      const body = note ? [note] : [];
+
+      // 存到 WEEK_CHAPTERS
+      WEEK_CHAPTERS[weekKey(todayStr())] = {
+        weekKey: weekKey(todayStr()),
+        period: WEEK_CHALLENGE.period,
+        title,
+        pickedMomentIds: [...picked],
+        opening,
+        body,
+        growth: 'new_branch',
+      };
+
+      // 第 3 步：展示成果
+      card.querySelector('#wc-step-2').style.display = 'none';
+      card.querySelector('#wc-step-3').style.display = 'block';
+      card.querySelector('#wc-done-title').textContent = title;
+      card.querySelector('#wc-done-body').innerHTML = `
+        <p style="font-family:var(--font-serif);font-size:14px;line-height:1.85;color:var(--ink);margin:14px 0;padding-left:12px;border-left:3px solid var(--amber-soft)">${escapeHtml(opening)}</p>
+        ${note ? `<p style="font-size:13px;color:var(--ink-soft);line-height:1.7">${escapeHtml(note)}</p>` : ''}
+        <p style="font-size:11px;color:var(--ink-faint);margin-top:14px">这一周被编进了你的 TSD。<br/>它不会消失在"飞快的过去"里了。</p>
+      `;
+    });
+
+    card.querySelector('#wc-done-close').addEventListener('click', () => {
+      overlay.classList.remove('show');
+      renderTell();
+    });
+  }
+
+  // 编译周章节开头（忠实编辑，从用户挑的瞬间串成）
+  function compileWeekOpening(picked) {
+    if (picked.length === 0) return '这一周，你保留了几个瞬间。';
+    if (picked.length === 1) {
+      const m = picked[0];
+      return `这一周留给你印象最深的，是 ${fmtDate(m.date)}：${m.text}。`;
+    }
+    // 多个：找时间最早的 → 最晚的，串起来
+    const sorted = [...picked].sort((a, b) => a.date.localeCompare(b.date));
+    const first = sorted[0];
+    const last = sorted[sorted.length - 1];
+    if (sorted.length === 2) {
+      return `这一周有两件事被你留住：${fmtDate(first.date)}的「${first.text.slice(0, 20)}」，和${fmtDate(last.date)}的「${last.text.slice(0, 20)}」。`;
+    }
+    return `这一周你留了 ${sorted.length} 个瞬间：从${fmtDate(first.date)}到${fmtDate(last.date)}，它们各自不同，但放在一起，讲出了这一周。`;
+  }
+
+  function openWeekChapterRead() {
+    const ch = WEEK_CHAPTERS[weekKey(todayStr())];
+    if (!ch) return;
+    const overlay = document.getElementById('upgrade-overlay');
+    const card = overlay.querySelector('.upgrade-card');
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-title">本周故事</span>
+        <button class="upgrade-close" id="wc-read-close">×</button>
+      </div>
+      <div class="upgrade-body">
+        <div class="chapter-card season" style="margin:0;border:none;padding:0;background:transparent">
+          <div class="chapter-period">${ch.period}</div>
+          <div class="chapter-title">${escapeHtml(ch.title)}</div>
+          <div class="chapter-opening">${escapeHtml(ch.opening)}</div>
+          ${ch.body.map(p => `<p class="story-body-para">${escapeHtml(p)}</p>`).join('')}
+        </div>
+        <button class="story-share-btn" onclick="alert('Demo：分享本周故事长图')">📤 分享</button>
+      </div>
+    `;
+    overlay.classList.add('show');
+    card.querySelector('#wc-read-close').addEventListener('click', () => overlay.classList.remove('show'));
+  }
+
+  // ============================================================
   // 视图 2：旷野语义缩放
   // ============================================================
   function renderMeadow() {
@@ -676,6 +866,21 @@
     document.getElementById('meadow-title').textContent = level.label;
     document.getElementById('meadow-semantic').textContent = level.semantic;
     const canvas = document.getElementById('meadow-canvas');
+
+    // 空状态：用户还没 Mark 任何东西
+    if (state.moments.length === 0) {
+      canvas.innerHTML = `
+        <div class="meadow-empty">
+          <div class="meadow-empty-title">这片旷野还是一片空白</div>
+          <div class="meadow-empty-text">
+            留下第一个瞬间，<br/>
+            它会长出第一根草。
+          </div>
+          <button class="empty-plus" onclick="document.getElementById('fab').click()" style="margin-top:24px">＋</button>
+        </div>
+      `;
+      return;
+    }
 
     if (state.plainMode) {
       canvas.innerHTML = renderPlainMeadow(zoom);
@@ -721,43 +926,58 @@
 
   // 月地貌
   function renderMonthMeadow() {
-    const monthsToShow = ['2026-07', '2026-06', '2026-05'];
+    const monthsToShow = ['2026-07', '2026-06', '2026-05', '2026-04'];
     return monthsToShow.map(mk => {
       const ms = state.moments.filter(m => monthKey(m.date) === mk);
-      const theme = MEADOW_LEVELS.month.themes[mk];
+      // 优先用 MONTH_LANDSCAPES，没有就降级到 MEADOW_LEVELS.month.themes
+      const landscape = MONTH_LANDSCAPES[mk] || MEADOW_LEVELS.month.themes[mk];
+      if (!landscape) return '';
       const told = ms.filter(m => m.toldAt).length;
+      const isJuly = mk === '2026-07';  // 当月，可能还未编译
       return `
-        <div class="chapter-card">
-          <div class="chapter-period">${mk}</div>
-          <div class="chapter-title">${escapeHtml(theme.title)}</div>
-          <div class="chapter-mainline">${escapeHtml(theme.mainline)}</div>
+        <div class="chapter-card ${isJuly ? 'uncompiled' : ''}">
+          <div class="chapter-period">${landscape.period || mk}</div>
+          <div class="chapter-title">${escapeHtml(landscape.title)}</div>
+          ${isJuly ? '<div class="chapter-tag">进行中</div>' : ''}
+          ${landscape.mainline ? `<div class="chapter-mainline">${escapeHtml(landscape.mainline)}</div>` : ''}
+          ${landscape.turningPoint ? `
+            <div class="story-section-label" style="margin-top:14px">转折</div>
+            <div class="chapter-mainline" style="color:var(--amber-deep);font-style:italic">${escapeHtml(landscape.turningPoint)}</div>
+          ` : ''}
           ${renderMeadowSvg({ grass: ms.length, blooms: told, height: 80, withStream: true })}
           <div class="meadow-summary" style="margin-top:10px">
-            ${ms.length} 个瞬间，${told} 个讲过
+            ${ms.length} 个瞬间 · ${told} 个讲过
+            ${landscape.weekChapterCount ? ` · ${landscape.weekChapterCount} 个周章节` : ''}
+            ${landscape.keyPeople && landscape.keyPeople.length ? ` · ${landscape.keyPeople.map(escapeHtml).join('、')}` : ''}
           </div>
         </div>
       `;
     }).join('');
   }
 
-  // 年地貌
+  // 年地貌（季度仪式）
   function renderYearMeadow() {
-    const q2 = MEADOW_LEVELS.year.seasons['2026-Q2'];
+    const q2 = SEASON_RITUAL['2026-Q2'];
     const q2Moments = state.moments.filter(m => {
       const d = parseDate(m.date);
       return d.getFullYear() === 2026 && d.getMonth() >= 3 && d.getMonth() <= 5;
     });
     return `
-      <div class="chapter-card">
-        <div class="chapter-period">2026 · 第二季度</div>
+      <div class="chapter-card season">
+        <div class="chapter-period">${q2.period}</div>
         <div class="chapter-title">${escapeHtml(q2.title)}</div>
         <div class="chapter-opening">${escapeHtml(q2.opening)}</div>
+        ${q2.body.map((p, i) => `<p class="story-body-para">${escapeHtml(p)}</p>`).join('')}
         ${renderMeadowSvg({ grass: q2Moments.length, blooms: q2Moments.filter(m=>m.toldAt).length, height: 100, withStream: true })}
+        <div class="meadow-summary" style="margin-top:14px">
+          ${q2.weekChapterCount} 个周章节 · ${q2.monthLandscapeCount} 个月风景 · ${q2.keyMoments.length} 个核心瞬间
+        </div>
+        ${q2.shareable ? `<button class="story-share-btn" onclick="alert('Demo：生成可分享的季度故事长图（含本季旷野、5-10 个鲜明瞬间、关系脉络）')">📤 分享这一季</button>` : ''}
       </div>
       <div class="chapter-card">
         <div class="chapter-period">2026 · 第一季度</div>
         <div class="chapter-title" style="color:var(--ink-faint)">（你来 TSD 之前的日子）</div>
-        <div class="chapter-mainline" style="color:var(--ink-faint)">这段时间没留下痕迹——也没关系。</div>
+        <div class="chapter-mainline" style="color:var(--ink-faint)">这段时间没留下痕迹——也没关系。你可以从人生格子点选任意一周回填。</div>
       </div>
     `;
   }
@@ -895,11 +1115,25 @@
   function renderArchive() {
     const sorted = [...state.moments].sort((a, b) => b.date.localeCompare(a.date));
     const list = document.getElementById('archive-list');
+
+    // 空状态
+    if (sorted.length === 0) {
+      list.innerHTML = `
+        <div class="archive-empty">
+          <div style="font-size:32px;margin-bottom:12px">📜</div>
+          <div>这里还没有留下任何瞬间。</div>
+          <div style="margin-top:8px">按底部 ＋ Mark 你的第一个。</div>
+        </div>
+      `;
+      return;
+    }
+
     list.innerHTML = sorted.map(m => {
       const mood = MOODS[m.mood];
+      // 去术语化：不再用 L0/L1/L2，改人话
       const levelBadge = m.toldAt
-        ? `<span class="level-badge-mini ${m.level === 2 ? 'l2' : 'l1'}">L${m.level} · ${m.level === 2 ? '原声' : '讲过'}</span>`
-        : `<span class="level-badge-mini l0">L0 · Mark</span>`;
+        ? `<span class="level-badge-mini ${m.level === 2 ? 'l2' : 'l1'}">${m.level === 2 ? '留过原声' : '讲过'}</span>`
+        : `<span class="level-badge-mini l0">已 Mark</span>`;
       return `
         <div class="archive-card">
           ${m.image ? `<img class="archive-card-image" src="${m.image}" alt="" loading="lazy"/>` : ''}
@@ -1006,12 +1240,21 @@
             v.innerHTML = `
               <header class="view-header"><div class="view-title">设置</div></header>
               <div class="setting-group">
+                <div class="setting-row"><span>今晚扫描</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="scan-toggle">${state.scanDisabled ? '已关闭 · 点此开启' : '已开启 · 点此关闭'}</span></div>
                 <div class="setting-row"><span>朴素模式</span><span style="font-size:11px;color:var(--ink-soft)">${state.plainMode ? '已开启' : '未开启'}（点顶部 🌿/📜 切换）</span></div>
-                <div class="setting-row"><span>分支论点</span><span style="font-size:11px;color:var(--ink-soft)">D+B+C（ZCode）</span></div>
-                <div class="setting-row"><span>版本</span><span style="font-size:11px;color:var(--ink-soft)">v3.7 Demo</span></div>
-                <div class="setting-row"><span>今晚扫描（主动发现）</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="scan-toggle">${state.scanDisabled ? '已关闭 · 点此开启' : '已开启 · 点此关闭'}</span></div>
-                <div class="setting-row"><span>看示例数据（陈雨三个月）</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="demo-link">点这里</span></div>
-                <div class="setting-row"><span>重置（回到 onboarding）</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="reset-link">点这里</span></div>
+              </div>
+              <div class="setting-group">
+                <div class="setting-row"><span>导出我的记忆数据</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="export-link">JSON ›</span></div>
+                <div class="setting-row"><span>反馈 / 建议</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="feedback-link">写一句 ›</span></div>
+                <div class="setting-row"><span>隐私政策</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="privacy-link">查看 ›</span></div>
+              </div>
+              <div class="setting-group">
+                <div class="setting-row"><span>关于 TSD</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="about-link">查看 ›</span></div>
+                <div class="setting-row"><span>版本</span><span style="font-size:11px;color:var(--ink-soft)">v3.8 Demo</span></div>
+              </div>
+              <div class="setting-group">
+                <div class="setting-row"><span>设计者：看示例数据</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="demo-link">陈雨三个月 ›</span></div>
+                <div class="setting-row"><span>设计者：重置 onboarding</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="reset-link">点这里</span></div>
               </div>
             `;
             document.querySelector('.app-views').appendChild(v);
@@ -1031,6 +1274,15 @@
               switchView('tell');
               renderTell();
             });
+            // v3.8 合规项
+            const el = v.querySelector('#export-link');
+            if (el) el.addEventListener('click', exportMyData);
+            const fl = v.querySelector('#feedback-link');
+            if (fl) fl.addEventListener('click', () => showInfoOverlay('feedback'));
+            const pl = v.querySelector('#privacy-link');
+            if (pl) pl.addEventListener('click', () => showInfoOverlay('privacy'));
+            const al = v.querySelector('#about-link');
+            if (al) al.addEventListener('click', () => showInfoOverlay('about'));
           }
           switchView('settings');
         } else if (target) {
@@ -1084,6 +1336,103 @@
     });
 
     // 注：skip-week-btn 和 opening-template-btn 现在都在 renderTell 里动态绑定
+  }
+
+  // ============================================================
+  // v3.8：合规 - 数据导出 + 关于/隐私/反馈 overlay
+  // ============================================================
+  function exportMyData() {
+    const data = {
+      exportedAt: new Date().toISOString(),
+      appVersion: 'TSD v3.8 Demo',
+      userMoments: state.moments,
+      weekChapters: WEEK_CHAPTERS,
+      monthLandscapes: MONTH_LANDSCAPES,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tsd-my-memories-${todayStr()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function showInfoOverlay(type) {
+    let ov = document.getElementById('info-overlay');
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'info-overlay';
+      ov.className = 'upgrade-overlay';
+      ov.innerHTML = '<div class="upgrade-card" id="info-card"></div>';
+      document.querySelector('.phone-screen').appendChild(ov);
+      ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('show'); });
+    }
+    const card = document.getElementById('info-card');
+    const contents = {
+      about: {
+        title: '关于 TSD',
+        body: `
+          <p class="info-para">TSD（Time Slow Down）帮助感觉时间飞逝的人，把模糊经过的日子重新长成可回忆、可讲述、可分享的人生。</p>
+          <p class="info-para"><b>三个月承诺</b>：连续使用三个月后，你能不费力地讲出 5-10 个鲜明瞬间——发生了什么、和谁有关、为什么重要。</p>
+          <p class="info-para"><b>核心信念</b>：记录只是原料，故事和回忆才是交付物。每周一次亲自编译，让一周不再消失。</p>
+          <p class="info-para" style="color:var(--ink-faint);font-size:12px">v3.8 Demo · ZCode 分支 · 2026-07-05<br/>遵循 Product Soul v1</p>
+        `,
+      },
+      privacy: {
+        title: '隐私政策',
+        body: `
+          <p class="info-para"><b>你的记忆，归你所有。</b></p>
+          <p class="info-para">本 Demo 所有数据存储在你的浏览器（localStorage），不上传任何服务器。点击"导出"可随时下载 JSON 备份；点击"重置"会永久清除所有数据。</p>
+          <p class="info-para"><b>未来生产版本将遵循</b>：</p>
+          <ul class="info-list">
+            <li>本地优先，设备内加密为第一落点</li>
+            <li>可选端到端加密备份，服务端无法读取内容</li>
+            <li>用户拥有恢复密钥</li>
+            <li>完整导出与彻底删除，包括生成故事和云端副本</li>
+            <li>AI 处理明确展示发送内容，敏感记忆可强制仅设备处理</li>
+          </ul>
+          <p class="info-para" style="color:var(--ink-faint);font-size:12px">无广告、不出售数据、人生印记不可付费解锁。</p>
+        `,
+      },
+      feedback: {
+        title: '反馈 / 建议',
+        body: `
+          <p class="info-para">谢谢你愿意帮 TSD 变得更好。</p>
+          <textarea class="feedback-input" id="feedback-input" placeholder="一句话也行：哪里好用？哪里别扭？最想要什么？" rows="5"></textarea>
+          <button class="upgrade-btn" id="feedback-submit">提交反馈</button>
+          <p class="info-para" style="color:var(--ink-faint);font-size:11px;margin-top:14px">Demo 阶段：反馈仅本地保存，不会发送到任何服务器。</p>
+        `,
+      },
+    };
+    const c = contents[type];
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-title">${c.title}</span>
+        <button class="upgrade-close" id="info-close">×</button>
+      </div>
+      <div class="upgrade-body info-body">${c.body}</div>
+    `;
+    ov.classList.add('show');
+    card.querySelector('#info-close').addEventListener('click', () => ov.classList.remove('show'));
+    const fb = card.querySelector('#feedback-submit');
+    if (fb) fb.addEventListener('click', () => {
+      const txt = card.querySelector('#feedback-input').value.trim();
+      if (!txt) return;
+      // 保存到 localStorage（Demo 阶段）
+      try {
+        const all = JSON.parse(localStorage.getItem('tsd_feedback') || '[]');
+        all.push({ at: new Date().toISOString(), text: txt });
+        localStorage.setItem('tsd_feedback', JSON.stringify(all));
+      } catch (e) {}
+      ov.classList.remove('show');
+      const done = document.getElementById('compose-done');
+      document.getElementById('done-sub').textContent = '谢谢。你帮 TSD 变得更好了。';
+      done.classList.add('show');
+      setTimeout(() => done.classList.remove('show'), 1500);
+    });
   }
 
   // ============================================================
