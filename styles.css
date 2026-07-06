@@ -2755,3 +2755,112 @@ button:active:not(:disabled) {
   background: var(--amber-soft);
   color: #fff;
 }
+
+/* v3.19 人生印记 */
+.milestone-popup {
+  text-align: center;
+  padding: 30px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.milestone-glow {
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(200, 135, 60, 0.15), transparent 70%);
+  pointer-events: none;
+  animation: glowPulse 2s ease-in-out infinite;
+}
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(1); }
+  50%      { opacity: 1; transform: translateX(-50%) scale(1.1); }
+}
+.milestone-emoji {
+  font-size: 56px;
+  margin-bottom: 12px;
+  animation: milestonePop 0.6s var(--ease-spring) both;
+  position: relative;
+}
+@keyframes milestonePop {
+  0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+  60% { transform: scale(1.2) rotate(5deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.milestone-label {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--amber-deep);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.milestone-title {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 10px;
+  position: relative;
+}
+.milestone-desc {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+  margin-bottom: 22px;
+  position: relative;
+}
+.milestone-hint {
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-top: 14px;
+  font-style: italic;
+  line-height: 1.6;
+  position: relative;
+}
+
+/* 收藏页 */
+.milestone-collection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.milestone-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: var(--r-sm);
+  background: var(--bg-warm);
+  border: 1px solid var(--line-soft);
+}
+.milestone-row.earned {
+  background: linear-gradient(135deg, rgba(253, 246, 232, 0.95) 0%, rgba(245, 230, 200, 0.85) 100%);
+  border-color: var(--amber-soft);
+}
+.milestone-row.fog {
+  opacity: 0.5;
+  border-style: dashed;
+}
+.milestone-row-emoji {
+  font-size: 28px;
+  width: 36px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.milestone-row.locked .milestone-row-emoji { filter: grayscale(1); }
+.milestone-row-body { flex: 1; }
+.milestone-row-title {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+.milestone-row-desc {
+  font-size: 11px;
+  color: var(--ink-faint);
+  line-height: 1.5;
+}

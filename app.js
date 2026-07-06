@@ -5,7 +5,7 @@
 // ============================================================
 
 (() => {
-  const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, ONBOARDING, NIGHT_SCAN, WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL } = window.__TSD_DATA__;
+  const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, ONBOARDING, NIGHT_SCAN, WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES } = window.__TSD_DATA__;
 
   // ============ 数据模式 ============
   // 'onboarding' 首启动 | 'empty' 空状态（用户自己用）| 'demo' 示例数据（陈雨）
@@ -880,6 +880,7 @@
     saveMoments();
     closeUpgrade();
     renderTell();
+    setTimeout(checkMilestones, 1800);  // v3.19
     // 静默反馈
     const done = document.getElementById('compose-done');
     document.getElementById('done-sub').textContent = '这是一个 L1 故事。它会被你记住。';
@@ -2045,6 +2046,7 @@
     setTimeout(() => {
       done.classList.remove('show');
       switchView('tell');
+      checkMilestones();  // v3.19 检查是否获得新印记
     }, 1500);
   }
 
@@ -2076,8 +2078,9 @@
                 <div class="setting-row"><span style="color:#c54455">彻底清除所有数据</span><span style="font-size:11px;color:var(--ink-faint);cursor:pointer" id="wipe-link">不可恢复 ›</span></div>
               </div>
               <div class="setting-group">
+                <div class="setting-row"><span>人生印记</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="milestones-link">查看 ›</span></div>
                 <div class="setting-row"><span>关于 TSD</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="about-link">查看 ›</span></div>
-                <div class="setting-row"><span>版本</span><span style="font-size:11px;color:var(--ink-soft)">v3.8 Demo</span></div>
+                <div class="setting-row"><span>版本</span><span style="font-size:11px;color:var(--ink-soft)">v3.19 Demo</span></div>
               </div>
               <div class="setting-group">
                 <div class="setting-row"><span>设计者：看示例数据</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="demo-link">陈雨三个月 ›</span></div>
@@ -2110,6 +2113,8 @@
             if (pl) pl.addEventListener('click', () => showInfoOverlay('privacy'));
             const al = v.querySelector('#about-link');
             if (al) al.addEventListener('click', () => showInfoOverlay('about'));
+            const ml = v.querySelector('#milestones-link');
+            if (ml) ml.addEventListener('click', showMilestonesCollection);
             // v3.12 彻底清除
             const wl = v.querySelector('#wipe-link');
             if (wl) wl.addEventListener('click', wipeAllData);
@@ -2400,6 +2405,80 @@
     t.textContent = text;
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), duration);
+  }
+
+  // ============================================================
+  // v3.19 人生印记（成就系统，不游戏化）
+  // ============================================================
+  function getEarnedMilestones() {
+    try {
+      return JSON.parse(localStorage.getItem('tsd_milestones') || '[]');
+    } catch(e) { return []; }
+  }
+  function checkMilestones() {
+    if (state.mode !== 'empty') return;  // 只在 empty mode（用户真实使用）检测
+    const earned = new Set(getEarnedMilestones());
+    const newlyEarned = [];
+    for (const ms of LIFE_MILESTONES) {
+      if (!earned.has(ms.id) && !ms.isFog && ms.check(state)) {
+        earned.add(ms.id);
+        newlyEarned.push(ms);
+      }
+    }
+    if (newlyEarned.length > 0) {
+      try { localStorage.setItem('tsd_milestones', JSON.stringify([...earned])); } catch(e) {}
+      // 延迟弹出（避免和 compose-done 冲突）
+      setTimeout(() => showMilestonePopup(newlyEarned[0]), 1800);
+    }
+  }
+  function showMilestonePopup(ms) {
+    const ov = document.getElementById('upgrade-overlay');
+    const card = ov.querySelector('.upgrade-card');
+    card.innerHTML = `
+      <div class="milestone-popup">
+        <div class="milestone-glow"></div>
+        <div class="milestone-emoji">${ms.emoji}</div>
+        <div class="milestone-label">一枚人生印记</div>
+        <div class="milestone-title">${escapeHtml(ms.title)}</div>
+        <div class="milestone-desc">${escapeHtml(ms.desc)}</div>
+        <button class="upgrade-btn" id="ms-close">收下</button>
+        <p class="milestone-hint">它已嵌入你的旷野。<br/>下一枚仍在生活的雾里。</p>
+      </div>
+    `;
+    ov.classList.add('show');
+    card.querySelector('#ms-close').addEventListener('click', () => ov.classList.remove('show'));
+  }
+  function showMilestonesCollection() {
+    const ov = document.getElementById('upgrade-overlay');
+    const card = ov.querySelector('.upgrade-card');
+    const earned = new Set(getEarnedMilestones());
+    const all = LIFE_MILESTONES;
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-title">人生印记</span>
+        <button class="upgrade-close" id="ms-collect-close">×</button>
+      </div>
+      <div class="upgrade-body">
+        <p style="font-size:13px;color:var(--ink-soft);margin-bottom:16px;line-height:1.7">印记不奖励你记录了多少——它们标记你活过的真实时刻。</p>
+        <div class="milestone-collection">
+          ${all.map(ms => {
+            const has = earned.has(ms.id) || ms.isFog;
+            return `
+              <div class="milestone-row ${has ? 'earned' : 'locked'} ${ms.isFog ? 'fog' : ''}">
+                <div class="milestone-row-emoji">${has ? ms.emoji : '🔒'}</div>
+                <div class="milestone-row-body">
+                  <div class="milestone-row-title">${escapeHtml(ms.title)}</div>
+                  <div class="milestone-row-desc">${has ? escapeHtml(ms.desc) : '尚未获得'}</div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+        <p style="font-size:11px;color:var(--ink-faint);margin-top:14px;text-align:center;font-style:italic">不显示锁定清单中尚未获得的具体条件——<br/>每一枚都在生活里自然到来。</p>
+      </div>
+    `;
+    ov.classList.add('show');
+    card.querySelector('#ms-collect-close').addEventListener('click', () => ov.classList.remove('show'));
   }
 
   function init() {

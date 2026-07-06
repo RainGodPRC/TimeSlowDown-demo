@@ -330,6 +330,64 @@ const SEASON_RITUAL = {
   },
 };
 
+// ============================================================
+// 人生印记（v3.19 成就系统，不游戏化）
+// 不显示锁定清单；末尾永远有"雾中印记"；只在达成时惊喜出现
+// ============================================================
+const LIFE_MILESTONES = [
+  {
+    id: 'first-moment',
+    emoji: '🌱',
+    title: '你开始了',
+    desc: '你留住了第一个瞬间。这是旷野里的第一根草。',
+    check: (state) => state.moments.length >= 1,
+  },
+  {
+    id: 'first-photo',
+    emoji: '📸',
+    title: '留住了光影',
+    desc: '你 Mark 了第一张照片。它不只是图像——它是时间的锚。',
+    check: (state) => state.moments.some(m => m.image),
+  },
+  {
+    id: 'first-tell',
+    emoji: '💬',
+    title: '说出了为什么',
+    desc: '你第一次讲了"为什么这一刻重要"。这就是讲述的开始。',
+    check: (state) => state.moments.some(m => m.why && m.why.length > 0),
+  },
+  {
+    id: 'first-first',
+    emoji: '🌿',
+    title: '记住了第一次',
+    desc: '一个"第一次"被你留住——它是新枝。',
+    check: (state) => state.moments.some(m => m.isFirst),
+  },
+  {
+    id: 'first-chapter',
+    emoji: '📖',
+    title: '编出了本周故事',
+    desc: '你亲自挑了瞬间、起了名字，编出了第一篇周章节。',
+    check: (state) => Object.keys(window.__TSD_DATA__.WEEK_CHAPTERS).length > 3,
+  },
+  {
+    id: 'first-people',
+    emoji: '🌸',
+    title: '让一个人出现了',
+    desc: '你 Mark 了一个和"谁"有关的瞬间。关系是花。',
+    check: (state) => state.moments.some(m => m.people && m.people.length > 0),
+  },
+  // 永远的雾中印记
+  {
+    id: 'fog',
+    emoji: '🌫️',
+    title: '雾中印记',
+    desc: '下一枚仍在生活的雾里。',
+    check: () => false,  // 永远不达成
+    isFog: true,
+  },
+];
+
 const NIGHT_SCAN = {
   // 讲述价值评分规则（高分在前）
   scoreRules: {
@@ -352,5 +410,5 @@ const NIGHT_SCAN = {
 // 暴露
 window.__TSD_DATA__ = {
   USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, PLAIN_MODE, ONBOARDING, NIGHT_SCAN,
-  WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL,
+  WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES,
 };
