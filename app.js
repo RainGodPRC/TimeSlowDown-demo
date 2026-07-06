@@ -46,6 +46,26 @@
     state.mode = 'empty';
     state.moments = [];
     saveMode('empty');
+    saveMoments();
+  }
+
+  // v3.13 数据持久化（empty mode 下用户的真实 Mark）
+  function saveMoments() {
+    if (state.mode !== 'empty') return;  // demo mode 不持久化（陈雨数据是静态的）
+    try {
+      // 只保存用户自己录入的瞬间（id 以 new- 或 bf- 开头），不含示例
+      const userMoments = state.moments.filter(m => m.id.startsWith('new-') || m.id.startsWith('bf-'));
+      localStorage.setItem('tsd_user_moments', JSON.stringify(userMoments));
+    } catch (e) {}
+  }
+  function loadMoments() {
+    if (state.mode !== 'empty') return;
+    try {
+      const saved = localStorage.getItem('tsd_user_moments');
+      if (saved) {
+        state.moments = JSON.parse(saved);
+      }
+    } catch (e) {}
   }
   // 首启动根据 mode 决定 moments
   if (state.mode === 'demo') state.moments = JSON.parse(JSON.stringify(MOMENTS));
@@ -518,27 +538,48 @@
       </div>
     `);
 
-    // 已讲（花）
+    // 已讲（花）—— Bento：第一张用大图，其余用 compact
     html.push('<div class="section-label">这一周你讲过的</div>');
     if (told.length === 0) {
       html.push('<div style="font-size:12px;color:var(--ink-faint);padding:8px 0 24px">（这周还没讲过。留一张照片就算开始。）</div>');
     } else {
       html.push('<div class="told-list">');
-      told.forEach(m => {
+      told.forEach((m, idx) => {
         const mood = MOODS[m.mood];
-        html.push(`
-          <div class="told-card">
-            ${m.image ? `<img class="told-thumb" src="${m.image}" alt="" loading="lazy"/>` : ''}
-            <div class="told-body">
-              <div class="told-text"><span class="told-emoji">${mood.emoji}</span>${escapeHtml(m.text)}</div>
-              ${m.why ? `<div class="told-why">"${escapeHtml(m.why)}"</div>` : ''}
-              <div class="told-meta">
-                ${m.location && m.location !== '—' ? `<span>· ${escapeHtml(m.location)}</span>` : ''}
-                ${m.people && m.people.length ? `<span>· ${m.people.map(escapeHtml).join('、')}</span>` : ''}
+        const isHero = idx === 0 && m.image;  // 第一张有大图 → Bento 主卡
+        if (isHero) {
+          // Bento 主卡：大图在上 + 内容在下
+          html.push(`
+            <div class="told-card">
+              <img class="told-hero-img" src="${m.image}" alt="" loading="lazy"/>
+              <div class="told-card-body">
+                <div class="told-text"><span class="told-emoji">${mood.emoji}</span>${escapeHtml(m.text)}</div>
+                ${m.why ? `<div class="told-why">${escapeHtml(m.why)}</div>` : ''}
+                <div class="told-meta">
+                  <span class="level-badge ${m.level === 2 ? 'l2' : ''}">${m.level === 2 ? '留过原声' : '讲过'}</span>
+                  ${m.location && m.location !== '—' ? `<span>· ${escapeHtml(m.location)}</span>` : ''}
+                  ${m.people && m.people.length ? `<span>· ${m.people.map(escapeHtml).join('、')}</span>` : ''}
+                </div>
               </div>
             </div>
-          </div>
-        `);
+          `);
+        } else {
+          // Compact 横排卡片
+          html.push(`
+            <div class="told-card compact">
+              ${m.image ? `<img class="told-thumb" src="${m.image}" alt="" loading="lazy"/>` : ''}
+              <div class="told-card-body">
+                <div class="told-text"><span class="told-emoji">${mood.emoji}</span>${escapeHtml(m.text)}</div>
+                ${m.why ? `<div class="told-why">${escapeHtml(m.why)}</div>` : ''}
+                <div class="told-meta">
+                  <span class="level-badge ${m.level === 2 ? 'l2' : ''}">${m.level === 2 ? '留过原声' : '讲过'}</span>
+                  ${m.location && m.location !== '—' ? `<span>· ${escapeHtml(m.location)}</span>` : ''}
+                  ${m.people && m.people.length ? `<span>· ${m.people.map(escapeHtml).join('、')}</span>` : ''}
+                </div>
+              </div>
+            </div>
+          `);
+        }
       });
       html.push('</div>');
     }
