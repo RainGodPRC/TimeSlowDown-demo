@@ -698,7 +698,7 @@
     const done = document.getElementById('compose-done');
     document.getElementById('done-sub').textContent = '这是一个 L1 故事。它会被你记住。';
     done.classList.add('show');
-    setTimeout(() => done.classList.remove('show'), 1500);
+    setTimeout(() => done.classList.remove('show'), 5000);
   }
 
   // ============================================================
@@ -1316,7 +1316,7 @@
       const done = document.getElementById('compose-done');
       document.getElementById('done-sub').textContent = '这一周原本空白，现在有了痕迹。';
       done.classList.add('show');
-      setTimeout(() => done.classList.remove('show'), 1500);
+      setTimeout(() => done.classList.remove('show'), 5000);
     });
   }
 
@@ -1567,7 +1567,7 @@
     setTimeout(() => {
       done.classList.remove('show');
       switchView('tell');
-    }, 1500);
+    }, 5000);
   }
 
   // ============================================================
@@ -1815,7 +1815,7 @@
       const done = document.getElementById('compose-done');
       document.getElementById('done-sub').textContent = '谢谢。你帮 TSD 变得更好了。';
       done.classList.add('show');
-      setTimeout(() => done.classList.remove('show'), 1500);
+      setTimeout(() => done.classList.remove('show'), 5000);
     });
   }
 
@@ -1851,7 +1851,7 @@
     setTimeout(() => {
       const sp = document.getElementById('splash');
       if (sp) sp.remove();
-    }, 1800);
+    }, 5500);
   }
 
   // 暴露分享函数给 onclick
