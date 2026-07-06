@@ -1594,6 +1594,7 @@
                 <div class="setting-row"><span>导出我的记忆数据</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="export-link">JSON ›</span></div>
                 <div class="setting-row"><span>反馈 / 建议</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="feedback-link">写一句 ›</span></div>
                 <div class="setting-row"><span>隐私政策</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="privacy-link">查看 ›</span></div>
+                <div class="setting-row"><span style="color:#c54455">彻底清除所有数据</span><span style="font-size:11px;color:var(--ink-faint);cursor:pointer" id="wipe-link">不可恢复 ›</span></div>
               </div>
               <div class="setting-group">
                 <div class="setting-row"><span>关于 TSD</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="about-link">查看 ›</span></div>
@@ -1630,6 +1631,9 @@
             if (pl) pl.addEventListener('click', () => showInfoOverlay('privacy'));
             const al = v.querySelector('#about-link');
             if (al) al.addEventListener('click', () => showInfoOverlay('about'));
+            // v3.12 彻底清除
+            const wl = v.querySelector('#wipe-link');
+            if (wl) wl.addEventListener('click', wipeAllData);
           }
           switchView('settings');
         } else if (target) {
@@ -1742,6 +1746,43 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    showToast('已导出 JSON 备份');
+  }
+
+  // v3.12 彻底清除（带二次确认）
+  function wipeAllData() {
+    const ov = document.getElementById('upgrade-overlay');
+    const card = ov.querySelector('.upgrade-card');
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-title" style="color:#c54455">彻底清除所有数据</span>
+        <button class="upgrade-close" id="wipe-close">×</button>
+      </div>
+      <div class="upgrade-body">
+        <p style="font-size:14px;line-height:1.7;color:var(--ink);margin-bottom:14px">这将<b style="color:#c54455">永久删除</b>你在 TSD 里的：</p>
+        <ul style="font-size:13px;line-height:1.9;color:var(--ink-soft);margin-bottom:18px;padding-left:20px">
+          <li>所有 Mark 的瞬间</li>
+          <li>所有周章节、月风景</li>
+          <li>所有反馈记录</li>
+          <li>onboarding 状态（下次会重新走引导）</li>
+        </ul>
+        <p style="font-size:13px;line-height:1.7;color:var(--ink-soft);margin-bottom:18px"><b>不可恢复</b>。建议先点\"导出\"做一份备份。</p>
+        <div style="display:flex;gap:8px">
+          <button class="upgrade-btn" id="wipe-cancel" style="background:var(--bg-warm);color:var(--ink-soft);flex:1">取消</button>
+          <button class="upgrade-btn" id="wipe-confirm" style="background:#c54455;flex:1">确认清除</button>
+        </div>
+      </div>
+    `;
+    ov.classList.add('show');
+    card.querySelector('#wipe-close').addEventListener('click', () => ov.classList.remove('show'));
+    card.querySelector('#wipe-cancel').addEventListener('click', () => ov.classList.remove('show'));
+    card.querySelector('#wipe-confirm').addEventListener('click', () => {
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem('tsd_feedback');
+      } catch (e) {}
+      location.reload();
+    });
   }
 
   function showInfoOverlay(type) {
@@ -1779,6 +1820,15 @@
             <li>AI 处理明确展示发送内容，敏感记忆可强制仅设备处理</li>
           </ul>
           <p class="info-para" style="color:var(--ink-faint);font-size:12px">无广告、不出售数据、人生印记不可付费解锁。</p>
+          <hr style="border:none;border-top:1px solid var(--line);margin:18px 0" />
+          <p class="info-para"><b>如果你正经历困难</b></p>
+          <p class="info-para" style="font-size:12px;color:var(--ink-soft)">TSD 不是心理健康工具。如果你正经历悲伤、失去或抑郁，请联系专业帮助：</p>
+          <ul class="info-list" style="font-size:12px">
+            <li>全国心理援助热线：400-161-9995（24 小时）</li>
+            <li>北京心理危机研究与干预中心：010-82951332</li>
+            <li>或拨打你所在城市的心理援助热线</li>
+          </ul>
+          <p class="info-para" style="font-size:12px;color:var(--ink-faint);font-style:italic">你的感受是真实的，值得被专业地承接。</p>
         `,
       },
       feedback: {
