@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=17" />
+  <link rel="stylesheet" href="styles.css?v=18" />
 </head>
 <body>
 
@@ -86,7 +86,12 @@
               <span id="plain-icon-meadow">🌿</span>
             </button>
             <div class="view-title-small" id="meadow-title">旷野</div>
-            <div class="meadow-zoom-controls">
+            <div class="meadow-lens-controls">
+              <button class="lens-pill active" data-lens="time">时间</button>
+              <button class="lens-pill" data-lens="people">人物</button>
+              <button class="lens-pill" data-lens="theme">主题</button>
+            </div>
+            <div class="meadow-zoom-controls" id="zoom-controls">
               <button class="zoom-pill" data-zoom="today">今日</button>
               <button class="zoom-pill active" data-zoom="week">本周</button>
               <button class="zoom-pill" data-zoom="month">月</button>
@@ -212,7 +217,7 @@
   </div>
 </div>
 
-<script src="data.js?v=17"></script>
-<script src="app.js?v=17"></script>
+<script src="data.js?v=18"></script>
+<script src="app.js?v=18"></script>
 </body>
 </html>

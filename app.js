@@ -26,6 +26,7 @@
     selectedMood: null,
     plainMode: false,
     meadowZoom: 'week',
+    meadowLens: 'time',  // v3.9: time | people | theme
     upgradeTargetId: null,
     weekSkipped: false,
     scanDisabled: false,       // v3.6 反 streak：用户关掉今晚扫描
@@ -850,7 +851,7 @@
           <div class="chapter-opening">${escapeHtml(ch.opening)}</div>
           ${ch.body.map(p => `<p class="story-body-para">${escapeHtml(p)}</p>`).join('')}
         </div>
-        <button class="story-share-btn" onclick="alert('Demo：分享本周故事长图')">📤 分享</button>
+        <button class="story-share-btn" onclick="window.__TSD_SHARE_WEEK()">📤 分享</button>
       </div>
     `;
     overlay.classList.add('show');
@@ -858,41 +859,298 @@
   }
 
   // ============================================================
+  // 分享卡生成（v3.9：用 canvas 生成 PNG 故事长图）
+  // ============================================================
+  function generateShareCard(type, data) {
+    // type: 'week' | 'month' | 'season'
+    const canvas = document.createElement('canvas');
+    const W = 1080;
+    const H = type === 'season' ? 1920 : (type === 'month' ? 1620 : 1350);
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // 背景：温暖米白渐变
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+    bgGrad.addColorStop(0, '#faf6ef');
+    bgGrad.addColorStop(1, '#f0e6d0');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+
+    // 顶部品牌带
+    ctx.fillStyle = '#c8873c';
+    ctx.font = '600 32px "Noto Serif SC", serif';
+    ctx.fillText('TSD · Time Slow Down', 80, 90);
+    ctx.fillStyle = '#8a5a1f';
+    ctx.font = '24px "Noto Serif SC", serif';
+    ctx.fillText('让走过的时间，长成你的人生。', 80, 130);
+
+    // 分隔线
+    ctx.strokeStyle = '#e8c89a';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(80, 170);
+    ctx.lineTo(W - 80, 170);
+    ctx.stroke();
+
+    // 类型标签
+    const typeLabel = { week: '本周故事', month: '月度风景', season: '季度仪式' }[type] || '故事';
+    ctx.fillStyle = '#b07a4a';
+    ctx.font = '500 22px "Noto Sans SC", sans-serif';
+    ctx.fillText(typeLabel.toUpperCase() + '  ·  ' + (data.period || ''), 80, 220);
+
+    // 标题
+    ctx.fillStyle = '#2d2a26';
+    ctx.font = '700 64px "Noto Serif SC", serif';
+    wrapText(ctx, data.title || '这一周', 80, 310, W - 160, 80);
+
+    // 开场（衬线斜体感）
+    let y = 460;
+    if (data.opening) {
+      ctx.fillStyle = '#8a5a1f';
+      ctx.font = 'italic 36px "Noto Serif SC", serif';
+      y = wrapText(ctx, '"' + data.opening + '"', 100, y, W - 200, 56);
+      y += 40;
+    }
+
+    // 正文段
+    if (data.body && data.body.length) {
+      ctx.fillStyle = '#2d2a26';
+      ctx.font = '32px "Noto Sans SC", sans-serif';
+      for (const p of data.body) {
+        y = wrapText(ctx, p, 80, y, W - 160, 52);
+        y += 30;
+      }
+    }
+
+    // 底部装饰：旷野 SVG 风格简笔（草+花）
+    y = H - 240;
+    drawMiniMeadow(ctx, 80, y, W - 160, 140);
+
+    // 底部签名
+    ctx.fillStyle = '#b3aa9c';
+    ctx.font = '22px "Noto Sans SC", sans-serif';
+    ctx.fillText('— TSD —', W / 2 - 40, H - 60);
+
+    return canvas;
+  }
+
+  // 简笔旷野装饰
+  function drawMiniMeadow(ctx, x, y, w, h) {
+    // 地面
+    ctx.fillStyle = 'rgba(217, 199, 149, 0.4)';
+    ctx.fillRect(x, y + h * 0.5, w, h * 0.5);
+    // 草
+    ctx.strokeStyle = '#7a9b6e';
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 15; i++) {
+      const gx = x + 20 + (i / 15) * (w - 40);
+      const gy = y + h * 0.7;
+      ctx.beginPath();
+      ctx.moveTo(gx, gy);
+      ctx.quadraticCurveTo(gx - 2, gy - 15, gx, gy - 25);
+      ctx.stroke();
+    }
+    // 花
+    for (let i = 0; i < 4; i++) {
+      const fx = x + 60 + (i / 4) * (w - 120);
+      const fy = y + h * 0.55;
+      ctx.fillStyle = '#5d7a5c';
+      ctx.fillRect(fx, fy, 1.5, 20);
+      ctx.fillStyle = '#d97a85';
+      ctx.beginPath();
+      ctx.arc(fx, fy, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(fx, fy, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  // 文本换行
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    const chars = text.split('');
+    let line = '';
+    let lineCount = 0;
+    for (let i = 0; i < chars.length; i++) {
+      const testLine = line + chars[i];
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && line) {
+        ctx.fillText(line, x, y + lineCount * lineHeight);
+        line = chars[i];
+        lineCount++;
+      } else {
+        line = testLine;
+      }
+    }
+    ctx.fillText(line, x, y + lineCount * lineHeight);
+    return y + (lineCount + 1) * lineHeight;
+  }
+
+  // 触发下载
+  function downloadCanvas(canvas, filename) {
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  }
+
+  // 分享周章节
+  function shareWeekChapter() {
+    const ch = WEEK_CHAPTERS[weekKey(todayStr())];
+    if (!ch) {
+      // 找最近一个
+      const keys = Object.keys(WEEK_CHAPTERS).sort().reverse();
+      if (keys.length === 0) return;
+      ch = WEEK_CHAPTERS[keys[0]];
+    }
+    const canvas = generateShareCard('week', {
+      period: ch.period,
+      title: ch.title,
+      opening: ch.opening,
+      body: ch.body,
+    });
+    downloadCanvas(canvas, `tsd-week-${ch.weekKey}.png`);
+  }
+
+  // 分享季度
+  function shareSeason() {
+    const s = SEASON_RITUAL['2026-Q2'];
+    const canvas = generateShareCard('season', {
+      period: s.period,
+      title: s.title,
+      opening: s.opening,
+      body: s.body,
+    });
+    downloadCanvas(canvas, `tsd-season-2026-Q2.png`);
+  }
+
+  // ============================================================
   // 视图 2：旷野语义缩放
   // ============================================================
   function renderMeadow() {
     const zoom = state.meadowZoom;
+    const lens = state.meadowLens;
     const level = MEADOW_LEVELS[zoom];
     document.getElementById('meadow-title').textContent = level.label;
-    document.getElementById('meadow-semantic').textContent = level.semantic;
+    // 语义句随镜头变化
+    const lensSemantic = {
+      time: level.semantic,
+      people: '谁与你共同走过了哪些阶段？',
+      theme: '家庭、创造、工作、远方——它们如何变化？',
+    }[lens];
+    document.getElementById('meadow-semantic').textContent = lensSemantic;
     const canvas = document.getElementById('meadow-canvas');
 
-    // 空状态：用户还没 Mark 任何东西
+    // 空状态
     if (state.moments.length === 0) {
       canvas.innerHTML = `
         <div class="meadow-empty">
           <div class="meadow-empty-title">这片旷野还是一片空白</div>
-          <div class="meadow-empty-text">
-            留下第一个瞬间，<br/>
-            它会长出第一根草。
-          </div>
+          <div class="meadow-empty-text">留下第一个瞬间，<br/>它会长出第一根草。</div>
           <button class="empty-plus" onclick="document.getElementById('fab').click()" style="margin-top:24px">＋</button>
         </div>
       `;
       return;
     }
 
+    // 人物/主题镜头：单独渲染（不依赖时间 zoom）
+    if (lens === 'people') { canvas.innerHTML = renderPeopleLens(); return; }
+    if (lens === 'theme')  { canvas.innerHTML = renderThemeLens(); return; }
+
     if (state.plainMode) {
       canvas.innerHTML = renderPlainMeadow(zoom);
       return;
     }
 
-    // 旷野视觉
+    // 时间镜头
     if (zoom === 'today') canvas.innerHTML = renderTodayMeadow();
     else if (zoom === 'week') canvas.innerHTML = renderWeekMeadow();
     else if (zoom === 'month') canvas.innerHTML = renderMonthMeadow();
     else if (zoom === 'year') canvas.innerHTML = renderYearMeadow();
     else if (zoom === 'life') canvas.innerHTML = renderLifeMeadow();
+  }
+
+  // 人物镜头：按出现频率 + 用户确认，列出重要的人
+  function renderPeopleLens() {
+    const peopleMap = {};
+    for (const m of state.moments) {
+      if (!m.people || !m.people.length) continue;
+      for (const p of m.people) {
+        if (!peopleMap[p]) peopleMap[p] = { name: p, moments: [], firstDate: m.date, lastDate: m.date };
+        peopleMap[p].moments.push(m);
+        if (m.date < peopleMap[p].firstDate) peopleMap[p].firstDate = m.date;
+        if (m.date > peopleMap[p].lastDate) peopleMap[p].lastDate = m.date;
+      }
+    }
+    const people = Object.values(peopleMap).sort((a, b) => b.moments.length - a.moments.length);
+
+    if (people.length === 0) {
+      return `<div class="meadow-empty"><div class="meadow-empty-title">还没有出现过具体的人</div><div class="meadow-empty-text">Mark 瞬间时加上"和谁"，<br/>这里会长出关系树。</div></div>`;
+    }
+
+    return `
+      <div class="people-lens">
+        <div class="lens-intro">这 ${people.length} 个人，在你的记忆里出现过。</div>
+        ${people.map(p => `
+          <div class="people-card">
+            <div class="people-avatar">${escapeHtml(p.name[0])}</div>
+            <div class="people-body">
+              <div class="people-name">${escapeHtml(p.name)}</div>
+              <div class="people-meta">${p.moments.length} 个瞬间 · ${fmtDate(p.firstDate)} → ${fmtDate(p.lastDate)}</div>
+              <div class="people-moments">
+                ${p.moments.slice(0, 3).map(m => `<div class="people-moment">${MOODS[m.mood].emoji} ${escapeHtml(m.text.slice(0, 30))}</div>`).join('')}
+                ${p.moments.length > 3 ? `<div class="people-more">+${p.moments.length - 3} 个</div>` : ''}
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+
+  // 主题镜头：按 location/first/mood 聚类
+  function renderThemeLens() {
+    // 简化：按 mood 聚类（深/感激/好奇等）
+    const themeMap = {};
+    for (const m of state.moments) {
+      const mood = MOODS[m.mood];
+      if (!themeMap[m.mood]) themeMap[m.mood] = { label: mood.label, emoji: mood.emoji, color: mood.color, moments: [] };
+      themeMap[m.mood].moments.push(m);
+    }
+    const themes = Object.values(themeMap).sort((a, b) => b.moments.length - a.moments.length);
+
+    // 按"第一次"/"地点"也做主题
+    const firsts = state.moments.filter(m => m.isFirst);
+    if (firsts.length > 0) {
+      themes.unshift({ label: '第一次', emoji: '🌱', color: '#5d7a5c', moments: firsts, isSpecial: true });
+    }
+
+    return `
+      <div class="theme-lens">
+        <div class="lens-intro">这是你记忆里的几条主线。</div>
+        ${themes.map(t => `
+          <div class="theme-card" style="border-left-color: ${t.color}">
+            <div class="theme-header">
+              <span class="theme-emoji">${t.emoji}</span>
+              <span class="theme-name">${escapeHtml(t.label)}</span>
+              <span class="theme-count">${t.moments.length}</span>
+            </div>
+            <div class="theme-moments">
+              ${t.moments.slice(0, 4).map(m => `<div class="theme-moment">${escapeHtml(m.text.slice(0, 40))}<span class="theme-date">${fmtDate(m.date)}</span></div>`).join('')}
+              ${t.moments.length > 4 ? `<div class="theme-more">+${t.moments.length - 4} 个</div>` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
   }
 
   // 今日地貌
@@ -955,6 +1213,112 @@
     }).join('');
   }
 
+  // 一生地貌：人生格子可点击回填
+  function renderLifeMeadow() {
+    const age = Math.floor((TODAY.getTime() - BIRTH.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    const nowWeek = Math.floor((TODAY.getTime() - BIRTH.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    const weekMap = {};
+    for (const m of state.moments) {
+      const d = parseDate(m.date);
+      const ms = d.getTime() - BIRTH.getTime();
+      const w = Math.floor(ms / (7 * 24 * 60 * 60 * 1000));
+      if (w >= 0 && w < 4160) weekMap[w] = (weekMap[w] || 0) + 1;
+    }
+    const cells = [];
+    for (let w = 0; w < 4160; w++) {
+      let cls = 'life-cell';
+      if (w > nowWeek) cls += ' future';
+      else if (w === nowWeek) cls += ' now';
+      else if (weekMap[w]) cls += weekMap[w] >= 2 ? ' filled-deep' : ' filled';
+      // 加 data-week 属性，便于点击回填（仅过去的周）
+      const dataAttr = (w <= nowWeek && !weekMap[w]) ? `data-week="${w}"` : '';
+      cells.push(`<div class="${cls}" ${dataAttr}></div>`);
+    }
+    return `
+      <div class="chapter-card">
+        <div class="chapter-period">一生</div>
+        <div class="chapter-title">你 ${age} 岁，活成了什么样子</div>
+        <div class="chapter-mainline">
+          已走过 <b>${nowWeek}</b> 周；<br/>
+          其中 <b>${Object.keys(weekMap).length}</b> 周留下了痕迹。
+        </div>
+        <div class="life-grid-mini" id="life-grid-mini">${cells.join('')}</div>
+        <div class="meadow-summary">
+          每一格是一周。填满的格子，是你活过的证据；<br/>
+          空白的格子，是还要去活的理由。<br/>
+          <span style="color:var(--amber-deep);margin-top:6px;display:inline-block">点空白格可以回填过去的瞬间 ›</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // 过去回填
+  function openBackfill(weekIndex) {
+    const ov = document.getElementById('upgrade-overlay');
+    const card = ov.querySelector('.upgrade-card');
+    const birthDate = new Date(BIRTH.getTime() + weekIndex * 7 * 24 * 60 * 60 * 1000);
+    const endDate = new Date(birthDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const fmtD = d => `${d.getFullYear()} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日`;
+    const defaultDate = birthDate.toISOString().slice(0, 10);
+
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-title">回填一段过去</span>
+        <button class="upgrade-close" id="bf-close">×</button>
+      </div>
+      <div class="upgrade-body">
+        <div class="bf-period">这一周是 <b>${fmtD(birthDate)}</b> – <b>${fmtD(endDate)}</b></div>
+        <p style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;line-height:1.7">那一周发生过什么？想起什么都行——一个画面、一个人、一个感受。模糊也没关系。</p>
+        <div class="compose-section-label">那天发生了什么</div>
+        <textarea class="wc-note-input" id="bf-text" placeholder="比如：和大学室友在校门口吃了一顿烧烤" rows="3"></textarea>
+        <div class="compose-section-label">心情</div>
+        <div class="compose-mood-row" id="bf-mood-row">
+          ${Object.entries(MOODS).map(([k, m]) => `<button class="mood-chip" data-mood="${k}">${m.emoji} ${m.label}</button>`).join('')}
+        </div>
+        <div class="compose-section-label">和谁（可选）</div>
+        <input class="wc-title-input" id="bf-people" placeholder="比如：室友老王" style="font-family:var(--font-sans);font-size:14px" />
+        <button class="upgrade-btn" id="bf-save">回填进我的旷野</button>
+        <p class="upgrade-hint">这一周原本是空白的，现在它有了痕迹。</p>
+      </div>
+    `;
+    ov.classList.add('show');
+
+    let selectedMood = 'warm';
+    card.querySelectorAll('#bf-mood-row .mood-chip').forEach(c => {
+      c.addEventListener('click', () => {
+        card.querySelectorAll('#bf-mood-row .mood-chip').forEach(x => x.classList.remove('selected'));
+        c.classList.add('selected');
+        selectedMood = c.dataset.mood;
+      });
+    });
+    card.querySelector('#bf-close').addEventListener('click', () => ov.classList.remove('show'));
+    card.querySelector('#bf-save').addEventListener('click', () => {
+      const text = card.querySelector('#bf-text').value.trim();
+      if (!text) return;
+      const newM = {
+        id: 'bf-' + Date.now(),
+        date: defaultDate,
+        text,
+        mood: selectedMood,
+        location: '—',
+        people: card.querySelector('#bf-people').value.trim() ? card.querySelector('#bf-people').value.trim().split(/[、,，]/).map(s=>s.trim()).filter(Boolean) : [],
+        isFirst: false,
+        image: null,
+        level: 1,
+        toldAt: defaultDate,
+        why: text,
+      };
+      state.moments.push(newM);
+      ov.classList.remove('show');
+      renderMeadow();
+      const done = document.getElementById('compose-done');
+      document.getElementById('done-sub').textContent = '这一周原本空白，现在有了痕迹。';
+      done.classList.add('show');
+      setTimeout(() => done.classList.remove('show'), 1500);
+    });
+  }
+
+  // 一生地貌
   // 年地貌（季度仪式）
   function renderYearMeadow() {
     const q2 = SEASON_RITUAL['2026-Q2'];
@@ -972,49 +1336,12 @@
         <div class="meadow-summary" style="margin-top:14px">
           ${q2.weekChapterCount} 个周章节 · ${q2.monthLandscapeCount} 个月风景 · ${q2.keyMoments.length} 个核心瞬间
         </div>
-        ${q2.shareable ? `<button class="story-share-btn" onclick="alert('Demo：生成可分享的季度故事长图（含本季旷野、5-10 个鲜明瞬间、关系脉络）')">📤 分享这一季</button>` : ''}
+        ${q2.shareable ? `<button class="story-share-btn" onclick="window.__TSD_SHARE_SEASON()">📤 分享这一季</button>` : ''}
       </div>
       <div class="chapter-card">
         <div class="chapter-period">2026 · 第一季度</div>
         <div class="chapter-title" style="color:var(--ink-faint)">（你来 TSD 之前的日子）</div>
         <div class="chapter-mainline" style="color:var(--ink-faint)">这段时间没留下痕迹——也没关系。你可以从人生格子点选任意一周回填。</div>
-      </div>
-    `;
-  }
-
-  // 一生地貌
-  function renderLifeMeadow() {
-    const age = Math.floor((TODAY.getTime() - BIRTH.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-    const nowWeek = Math.floor((TODAY.getTime() - BIRTH.getTime()) / (7 * 24 * 60 * 60 * 1000));
-    // 生成 4160 格的小格子
-    const weekMap = {};
-    for (const m of state.moments) {
-      const d = parseDate(m.date);
-      const ms = d.getTime() - BIRTH.getTime();
-      const w = Math.floor(ms / (7 * 24 * 60 * 60 * 1000));
-      if (w >= 0 && w < 4160) weekMap[w] = (weekMap[w] || 0) + 1;
-    }
-    const cells = [];
-    for (let w = 0; w < 4160; w++) {
-      let cls = 'life-cell';
-      if (w > nowWeek) cls += ' future';
-      else if (w === nowWeek) cls += ' now';
-      else if (weekMap[w]) cls += weekMap[w] >= 2 ? ' filled-deep' : ' filled';
-      cells.push(`<div class="${cls}"></div>`);
-    }
-    return `
-      <div class="chapter-card">
-        <div class="chapter-period">一生</div>
-        <div class="chapter-title">你 ${age} 岁，活成了什么样子</div>
-        <div class="chapter-mainline">
-          已走过 <b>${nowWeek}</b> 周；<br/>
-          其中 <b>${Object.keys(weekMap).length}</b> 周留下了痕迹。
-        </div>
-        <div class="life-grid-mini">${cells.join('')}</div>
-        <div class="meadow-summary">
-          每一格是一周。填满的格子，是你活过的证据；<br/>
-          空白的格子，是还要去活的理由。
-        </div>
       </div>
     `;
   }
@@ -1307,6 +1634,25 @@
       });
     });
 
+    // 镜头切换（v3.9）
+    document.querySelectorAll('.lens-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.lens-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.meadowLens = btn.dataset.lens;
+        // 人物/主题镜头下隐藏 zoom 控件（它们不分时间粒度）
+        const zc = document.getElementById('zoom-controls');
+        if (zc) zc.style.display = (state.meadowLens === 'time') ? '' : 'none';
+        renderMeadow();
+      });
+    });
+
+    // 过去回填：人生格子点击（事件委托）
+    document.getElementById('meadow-canvas').addEventListener('click', e => {
+      const cell = e.target.closest('[data-week]');
+      if (cell) openBackfill(parseInt(cell.dataset.week, 10));
+    });
+
     // 录入
     document.getElementById('tab-add').addEventListener('click', openCompose);
     document.getElementById('fab').addEventListener('click', openCompose);
@@ -1454,6 +1800,10 @@
       switchView('tell');
     }
   }
+
+  // 暴露分享函数给 onclick
+  window.__TSD_SHARE_WEEK = shareWeekChapter;
+  window.__TSD_SHARE_SEASON = shareSeason;
 
   document.addEventListener('DOMContentLoaded', init);
 })();
