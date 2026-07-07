@@ -1398,6 +1398,10 @@
             ${landscape.weekChapterCount ? ` · ${landscape.weekChapterCount} 个周章节` : ''}
             ${landscape.keyPeople && landscape.keyPeople.length ? ` · ${landscape.keyPeople.map(escapeHtml).join('、')}` : ''}
           </div>
+          ${ms.length >= 3 && !landscape.userNamed ? `
+            <button class="wc-view-btn month-name-btn" data-month="${mk}" style="margin-top:10px;width:100%">📅 给这个月起个名字</button>
+          ` : ''}
+          ${landscape.userNamed ? `<div style="margin-top:8px;font-size:11px;color:var(--moss-deep);font-style:italic">✓ 你给这个月起过名字</div>` : ''}
         </div>
       `;
     }).join('');
@@ -1443,8 +1447,75 @@
   }
 
   // ============================================================
-  // v3.20 季度回忆仪式（北极星交付物）
+  // v3.21 月度命名仪式
   // ============================================================
+  function showMonthNaming(monthKey) {
+    const ms = state.moments.filter(m => monthKey === monthKey(m.date)).sort((a,b) => a.date.localeCompare(b.date));
+    const told = ms.filter(m => m.toldAt);
+    const landscape = MONTH_LANDSCAPES[monthKey] || {};
+    const people = [...new Set(ms.flatMap(m => m.people || []))];
+
+    // 预编译草稿
+    const draftTitle = told.length >= 2
+      ? `从 ${fmtDate(told[0].date)} 到 ${fmtDate(told[told.length-1].date)}`
+      : `${ms.length} 个瞬间的这个月`;
+    const draftMainline = told.length >= 1
+      ? `这个月你留住了 ${ms.length} 个瞬间，讲出了 ${told.length} 个故事。${people.length ? `出现的最重要的人：${people.slice(0,3).join('、')}。` : ''}`
+      : `这个月你留住了 ${ms.length} 个瞬间。`;
+
+    const ov = document.getElementById('upgrade-overlay');
+    const card = ov.querySelector('.upgrade-card');
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-title">给这个月起个名字</span>
+        <button class="upgrade-close" id="mn-close">×</button>
+      </div>
+      <div class="upgrade-body">
+        <div class="mn-preview">
+          <div class="mn-preview-label">TSD 看到的这个月</div>
+          <p style="font-size:13px;color:var(--ink-soft);line-height:1.7;margin-bottom:10px">${escapeHtml(draftMainline)}</p>
+          ${told.slice(0, 3).map(m => {
+            const mood = MOODS[m.mood];
+            return `<div style="font-size:12px;color:var(--ink);margin-bottom:4px;padding-left:8px;border-left:2px solid var(--amber-soft)">${mood.emoji} ${escapeHtml(m.text.slice(0,30))}</div>`;
+          }).join('')}
+        </div>
+
+        <div class="compose-section-label">这个月叫什么？</div>
+        <input class="wc-title-input" id="mn-title" placeholder="${escapeHtml(draftTitle)}" maxlength="20" style="margin-bottom:14px" />
+        <div class="compose-section-label">这个月有什么开始、结束、或悄悄改变了？ <span class="label-hint">（可选）</span></div>
+        <textarea class="wc-note-input" id="mn-change" placeholder="比如：开始了新的健身习惯 / 老朋友联系变少了 / 心态更稳了" rows="3" style="margin-bottom:14px"></textarea>
+
+        <button class="upgrade-btn" id="mn-save">命名这个月</button>
+        <p class="upgrade-hint">命名后，这个月会在你的旷野里有了名字——不再只是\"${monthKey}\"。</p>
+      </div>
+    `;
+    ov.classList.add('show');
+
+    card.querySelector('#mn-close').addEventListener('click', () => ov.classList.remove('show'));
+    card.querySelector('#mn-save').addEventListener('click', () => {
+      const title = card.querySelector('#mn-title').value.trim() || draftTitle;
+      const change = card.querySelector('#mn-change').value.trim();
+      // 写入 MONTH_LANDSCAPES
+      MONTH_LANDSCAPES[monthKey] = {
+        ...landscape,
+        monthKey,
+        period: landscape.period || monthKey,
+        title,
+        mainline: change || draftMainline,
+        turningPoint: change || landscape.turningPoint,
+        keyPeople: people,
+        weekChapterCount: Object.keys(WEEK_CHAPTERS).filter(k => k.startsWith(monthKey.slice(0,4))).length,
+        userNamed: true,
+      };
+      saveMoments();
+      ov.classList.remove('show');
+      renderMeadow();
+      showToast(`这个月叫"${title}"`);
+      checkMilestones();
+    });
+  }
+
+
   function showSeasonRitual() {
     const ritual = SEASON_RITUAL['2026-Q2'];
     const qMoments = ritual.keyMoments.map(id => getMoment(id)).filter(Boolean);
@@ -2286,6 +2357,9 @@
       // v3.20 季度仪式入口
       const ritualBtn = e.target.closest('#season-ritual-btn');
       if (ritualBtn) showSeasonRitual();
+      // v3.21 月度命名入口
+      const monthBtn = e.target.closest('.month-name-btn');
+      if (monthBtn) showMonthNaming(monthBtn.dataset.month);
     });
 
     // 搜索（v3.10）

@@ -3025,3 +3025,29 @@ button:active:not(:disabled) {
   line-height: 1.7;
 }
 .ritual-self-know b { color: var(--amber-deep); }
+
+/* v3.21 月度命名 */
+.mn-preview {
+  background: var(--bg-warm);
+  padding: 14px;
+  border-radius: var(--r-sm);
+  margin-bottom: 18px;
+  border-left: 3px solid var(--amber-soft);
+}
+.mn-preview-label {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--amber-deep);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.month-name-btn {
+  background: linear-gradient(135deg, var(--moss-soft), rgba(168,192,160,0.7)) !important;
+  color: var(--moss-deep) !important;
+  border: 1px solid var(--moss-soft) !important;
+}
+.month-name-btn:hover {
+  background: var(--moss) !important;
+  color: #fff !important;
+}
