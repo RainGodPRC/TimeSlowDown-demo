@@ -73,18 +73,24 @@ if (isNative) {
     } catch(e) {}
   }
 
-  // v3.13/v3.15 数据持久化（empty mode 下用户的真实 Mark + 周章节）
+  // v3.13/v3.15/v3.27 数据持久化（empty mode 下用户的真实 Mark + 周章节 + 月度命名）
   function saveMoments() {
     if (state.mode !== 'empty') return;
     try {
       const userMoments = state.moments.filter(m => m.id.startsWith('new-') || m.id.startsWith('bf-'));
       localStorage.setItem('tsd_user_moments', JSON.stringify(userMoments));
-      // 也持久化周章节（key 以 user-wc- 开头区分示例）
+      // 持久化周章节
       const userChapters = {};
       for (const [k, v] of Object.entries(WEEK_CHAPTERS)) {
-        if (k >= '2026-W27') userChapters[k] = v;  // 只存当前周及之后（示例数据在之前）
+        if (k >= '2026-W27') userChapters[k] = v;
       }
       localStorage.setItem('tsd_user_chapters', JSON.stringify(userChapters));
+      // v3.27 修复：持久化用户命名的月度
+      const userMonths = {};
+      for (const [k, v] of Object.entries(MONTH_LANDSCAPES)) {
+        if (v.userNamed) userMonths[k] = v;
+      }
+      localStorage.setItem('tsd_user_months', JSON.stringify(userMonths));
     } catch (e) {}
   }
   function loadMoments() {
@@ -98,6 +104,12 @@ if (isNative) {
       if (savedCh) {
         const userCh = JSON.parse(savedCh);
         for (const [k, v] of Object.entries(userCh)) WEEK_CHAPTERS[k] = v;
+      }
+      // v3.27 修复：加载用户命名的月度
+      const savedMo = localStorage.getItem('tsd_user_months');
+      if (savedMo) {
+        const userMo = JSON.parse(savedMo);
+        for (const [k, v] of Object.entries(userMo)) MONTH_LANDSCAPES[k] = v;
       }
     } catch (e) {}
   }
@@ -2663,15 +2675,37 @@ if (isNative) {
   // ============================================================
   // v3.8：合规 - 数据导出 + 关于/隐私/反馈 overlay
   // ============================================================
-  function exportMyData() {
+  async function exportMyData() {
     const data = {
       exportedAt: new Date().toISOString(),
-      appVersion: 'TSD v3.8 Demo',
+      appVersion: 'TSD v3.25',
       userMoments: state.moments,
       weekChapters: WEEK_CHAPTERS,
       monthLandscapes: MONTH_LANDSCAPES,
     };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const jsonStr = JSON.stringify(data, null, 2);
+
+    if (isNative && CapacitorFS && CapacitorShare) {
+      // 原生：Filesystem + Share
+      try {
+        const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
+        const result = await CapacitorFS.writeFile({
+          path: `tsd-export-${todayStr()}.json`,
+          data: base64,
+          directory: 'DOCUMENTS',
+        });
+        await CapacitorShare.share({
+          title: 'TSD 记忆备份',
+          text: '你的 TSD 记忆数据已导出',
+          url: result.uri,
+        });
+        showToast('已导出 JSON 备份');
+        return;
+      } catch(e) { /* 降级到 Web */ }
+    }
+
+    // Web：Blob + <a download>
+    const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -2716,6 +2750,7 @@ if (isNative) {
         localStorage.removeItem('tsd_feedback');
         localStorage.removeItem('tsd_user_moments');
         localStorage.removeItem('tsd_user_chapters');
+        localStorage.removeItem('tsd_user_months');  // v3.27
       } catch (e) {}
       location.reload();
     });
