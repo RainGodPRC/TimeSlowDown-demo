@@ -1065,14 +1065,25 @@ if (isNative) {
       card.querySelector('#wc-title-input').focus();
     });
 
-    card.querySelector('#wc-finish').addEventListener('click', () => {
+    card.querySelector('#wc-finish').addEventListener('click', async () => {
       const title = card.querySelector('#wc-title-input').value.trim() || '这一周';
       const note = card.querySelector('#wc-note-input').value.trim();
       const pickedMoments = [...picked].map(id => getMoment(id)).filter(Boolean);
+      const finishBtn = card.querySelector('#wc-finish');
+      finishBtn.textContent = '正在编译...';
+      finishBtn.disabled = true;
 
-      // 编译本周故事（忠实编辑，不编造）
-      const opening = compileWeekOpening(pickedMoments);
-      const body = note ? [note] : [];
+      // v3.28 尝试 LLM 编译，失败降级到规则引擎
+      let opening, body;
+      try {
+        const aiResult = await compileWithAI(pickedMoments, title, note);
+        opening = aiResult.opening;
+        body = aiResult.body;
+      } catch(e) {
+        // 降级
+        opening = compileWeekOpening(pickedMoments);
+        body = note ? [note] : [];
+      }
 
       // 存到 WEEK_CHAPTERS
       WEEK_CHAPTERS[weekKey(todayStr())] = {
@@ -1118,6 +1129,107 @@ if (isNative) {
       return `这一周有两件事被你留住：${fmtDate(first.date)}的「${first.text.slice(0, 20)}」，和${fmtDate(last.date)}的「${last.text.slice(0, 20)}」。`;
     }
     return `这一周你留了 ${sorted.length} 个瞬间：从${fmtDate(first.date)}到${fmtDate(last.date)}，它们各自不同，但放在一起，讲出了这一周。`;
+  }
+
+  // v3.28 AI 编译（忠实编辑，保留用户原话）
+  async function compileWithAI(pickedMoments, userTitle, userNote) {
+    // 检查 AI 后端是否可用（Demo 阶段 API 未就绪 → 降级）
+    const API_URL = (typeof TSD_CONFIG !== 'undefined' && TSD_CONFIG.aiApiUrl) || null;
+    if (!API_URL) {
+      // 降级到增强版规则引擎（比 v3.8 更智能）
+      return compileWithSmartRules(pickedMoments, userTitle, userNote);
+    }
+
+    // 构建素材摘要
+    const 素材 = pickedMoments.map(m => {
+      const mood = MOODS[m.mood];
+      const parts = [
+        `日期：${fmtDate(m.date)}`,
+        `瞬间：${m.text}`,
+        m.why ? `为什么重要："${m.why}"` : '',
+        m.people && m.people.length ? `人物：${m.people.join('、')}` : '',
+        m.location && m.location !== '—' ? `地点：${m.location}` : '',
+        `心情：${mood.label}`,
+        m.isFirst ? '标记：第一次' : '',
+      ].filter(Boolean);
+      return parts.join('\n');
+    }).join('\n---\n');
+
+    const prompt = `你是一个忠实的记忆编辑。下面是用户这周挑出的几个瞬间。请帮他把它们串成一段开篇（opening），要求：
+
+1. 只用用户自己的原话和事实——不补充合理细节，不猜人物内心
+2. 不使用比喻和抒情——除非用户自己用了
+3. 如果发现两个瞬间之间有隐含联系（比如同一个人、同一种情绪），可以点出
+4. 语气要像用户自己在说话，不像 AI 在写
+5. 不超过 100 字
+
+用户给这一周起的名字："${userTitle}"
+${userNote ? `用户补充：${userNote}` : ''}
+
+素材：
+${素材}
+
+请输出 JSON 格式：{"opening": "开篇文字", "body": ["可选的正文段落，可为空数组"]}`;
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, model: 'lite' }),
+    });
+    if (!response.ok) throw new Error('AI compile failed');
+    const data = await response.json();
+    return {
+      opening: data.opening || compileWeekOpening(pickedMoments),
+      body: data.body || (userNote ? [userNote] : []),
+    };
+  }
+
+  // v3.28 增强版规则引擎（比 v3.8 更智能，发现隐含联系）
+  function compileWithSmartRules(picked, userTitle, userNote) {
+    if (picked.length === 0) return { opening: '这一周，你保留了几个瞬间。', body: [] };
+
+    // 找共同人物
+    const allPeople = picked.flatMap(m => m.people || []);
+    const peopleCounts = {};
+    allPeople.forEach(p => peopleCounts[p] = (peopleCounts[p]||0)+1);
+    const sharedPeople = Object.entries(peopleCounts).filter(([_,c]) => c >= 2).map(([p]) => p);
+
+    // 找共同情绪
+    const moods = picked.map(m => m.mood);
+    const moodCounts = {};
+    moods.forEach(mo => moodCounts[mo] = (moodCounts[mo]||0)+1);
+    const dominantMood = Object.entries(moodCounts).sort((a,b) => b[1]-a[1])[0];
+    const isMoodDominant = dominantMood && dominantMood[1] >= 2;
+    const moodLabel = dominantMood ? MOODS[dominantMood[0]].label : '';
+
+    // 找第一次
+    const firsts = picked.filter(m => m.isFirst);
+
+    const sorted = [...picked].sort((a, b) => a.date.localeCompare(b.date));
+
+    // 构建开篇（根据发现选择模板）
+    let opening;
+    if (sharedPeople.length > 0) {
+      // 共同人物为主轴
+      const person = sharedPeople[0];
+      const relatedMoments = sorted.filter(m => (m.people||[]).includes(person));
+      opening = `和${person}有关的瞬间出现了${relatedMoments.length}次。${sorted[0].text.slice(0,15)}——${sorted[0].why ? sorted[0].why.slice(0,20) : '它留在你心里'}。`;
+    } else if (isMoodDominant) {
+      // 共同情绪为主轴
+      opening = `这几个瞬间都是${moodLabel}的。${sorted[0].text.slice(0,20)}——从${fmtDate(sorted[0].date)}到${fmtDate(sorted[sorted.length-1].date)}，这种感受贯穿了这一周。`;
+    } else if (firsts.length > 0) {
+      // 第一次为主轴
+      opening = `这一周有${firsts.length}个"第一次"。${firsts[0].text.slice(0,25)}——${firsts[0].why || '一个新的边界'}。`;
+    } else if (sorted.length === 1) {
+      opening = `${sorted[0].text}${sorted[0].why ? '——'+sorted[0].why : ''}`;
+    } else {
+      // 通用：时间线串联
+      const excerpts = sorted.map(m => `「${m.text.slice(0, 12)}」`).join('，');
+      opening = `从${fmtDate(sorted[0].date)}的${excerpts}——把它们放在一起，才能看出这一周。`;
+    }
+
+    const body = userNote ? [userNote] : [];
+    return { opening, body };
   }
 
   function openWeekChapterRead() {
