@@ -1,8 +1,24 @@
 // ============================================================
-// TSD Demo v3.1 — 应用逻辑
+// TSD v3.25 — 应用逻辑（Web + Capacitor 双模式）
 // 论点：D 讲述优先 + B Mark 优先 + C 旷野优先
-// v3.1：onboarding + 空状态 + 去概念化
 // ============================================================
+
+// v3.25 Capacitor 检测 + 插件加载（浏览器里安全降级）
+const isNative = typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform;
+let CapacitorCamera = null;
+let CapacitorPrefs = null;
+let CapacitorShare = null;
+let CapacitorFS = null;
+let CapacitorLN = null;
+
+if (isNative) {
+  // Capacitor 原生环境：动态加载插件
+  try { CapacitorCamera = window.Capacitor.Plugins.Camera; } catch(e) {}
+  try { CapacitorPrefs = window.Capacitor.Plugins.Preferences; } catch(e) {}
+  try { CapacitorShare = window.Capacitor.Plugins.Share; } catch(e) {}
+  try { CapacitorFS = window.Capacitor.Plugins.Filesystem; } catch(e) {}
+  try { CapacitorLN = window.Capacitor.Plugins.LocalNotifications; } catch(e) {}
+}
 
 (() => {
   const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, ONBOARDING, NIGHT_SCAN, WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES } = window.__TSD_DATA__;
@@ -1247,7 +1263,32 @@
   }
 
   // 触发下载
-  function downloadCanvas(canvas, filename) {
+  // v3.25 分享/下载 canvas（Capacitor 原生 Share + Filesystem / Web download）
+  async function downloadCanvas(canvas, filename) {
+    const dataUrl = canvas.toDataURL('image/png');
+
+    if (isNative && CapacitorShare) {
+      // Capacitor 原生分享
+      try {
+        if (CapacitorFS) {
+          // 先写文件，再分享
+          const base64 = dataUrl.split(',')[1];
+          const fileResult = await CapacitorFS.writeFile({
+            path: filename,
+            data: base64,
+            directory: 'CACHE',  // 临时目录
+          });
+          await CapacitorShare.share({
+            title: 'TSD 故事',
+            url: fileResult.uri,
+          });
+          showToast('已弹出分享');
+          return;
+        }
+      } catch(e) { /* 降级 */ }
+    }
+
+    // Web 模式：Blob + <a download>
     canvas.toBlob(blob => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1257,6 +1298,7 @@
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      showToast('已保存到下载');
     }, 'image/png');
   }
 
@@ -2536,37 +2578,73 @@
       chip.classList.add('selected');
       state.selectedMood = chip.dataset.mood;
     });
-    // v3.16 真实照片上传（FileReader + canvas 压缩）
+    // v3.25 照片上传（Capacitor Camera 原生 + FileReader Web 双模式）
     const imgSlot = document.getElementById('compose-image-slot');
     if (imgSlot && !imgSlot._tsdFileBound) {
       imgSlot._tsdFileBound = true;
-      const fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.accept = 'image/*';
-      fileInput.capture = 'environment';  // 手机端优先调相机
-      fileInput.style.display = 'none';
-      imgSlot.appendChild(fileInput);
 
-      imgSlot.addEventListener('click', e => {
+      // 统一的"选照片"入口
+      imgSlot.addEventListener('click', async e => {
         if (e.target.tagName === 'INPUT') return;
-        fileInput.click();
-      });
+        let dataUrl = null;
 
-      fileInput.addEventListener('change', e => {
-        const file = e.target.files[0];
-        if (!file) return;
-        // 读取 + 压缩
-        const reader = new FileReader();
-        reader.onload = ev => {
-          compressImage(ev.target.result, 800, 0.7).then(dataUrl => {
-            imgSlot.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover"/>`;
-            imgSlot.style.border = '1px solid var(--line)';
-            imgSlot.style.background = '#fff';
-            imgSlot.appendChild(fileInput);  // 重新挂回 input
-            imgSlot._tsdImage = dataUrl;     // 存到 slot 上，saveCompose 读
+        if (isNative && CapacitorCamera) {
+          // === Capacitor 原生模式 ===
+          try {
+            const photo = await CapacitorCamera.getPhoto({
+              quality: 70,
+              allowEditing: false,
+              resultType: 'Base64',     // 直接拿 base64
+              source: 'PROMPT',          // 弹"拍照/相册"选择
+              correctOrientation: true,
+            });
+            dataUrl = `data:image/${photo.format || 'jpeg'};base64,${photo.base64String}`;
+          } catch(err) {
+            // 用户取消，静默
+          }
+        } else {
+          // === Web FileReader 模式（PWA/浏览器）===
+          // 用隐藏 input 触发
+          if (!imgSlot._fileInput) {
+            const fi = document.createElement('input');
+            fi.type = 'file';
+            fi.accept = 'image/*';
+            fi.capture = 'environment';
+            fi.style.display = 'none';
+            imgSlot.appendChild(fi);
+            imgSlot._fileInput = fi;
+          }
+          return new Promise(resolve => {
+            const fi = imgSlot._fileInput;
+            fi.value = '';  // 重置，允许重选同一文件
+            fi.onchange = ev => {
+              const file = ev.target.files[0];
+              if (!file) { resolve(); return; }
+              const reader = new FileReader();
+              reader.onload = evt => {
+                compressImage(evt.target.result, 800, 0.7).then(compressed => {
+                  dataUrl = compressed;
+                  resolve();
+                });
+              };
+              reader.readAsDataURL(file);
+            };
+            fi.click();
           });
-        };
-        reader.readAsDataURL(file);
+        }
+
+        // 有图 → 显示
+        if (dataUrl) {
+          // Capacitor 返回的 base64 可能很大，先压缩
+          if (isNative) {
+            dataUrl = await compressImage(dataUrl, 800, 0.7);
+          }
+          imgSlot.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover"/>`;
+          if (imgSlot._fileInput) imgSlot.appendChild(imgSlot._fileInput);
+          imgSlot.style.border = '1px solid var(--line)';
+          imgSlot.style.background = '#fff';
+          imgSlot._tsdImage = dataUrl;
+        }
       });
     }
 
@@ -2825,15 +2903,61 @@
       renderOnboarding();
       switchView('onboarding');
     } else {
-      // 已经走过 onboarding（'demo' 或 'empty'）→ 直接进 tell
       switchView('tell');
     }
 
-    // v3.11：splash 在 1.7 秒后强制移除（防止动画失败导致永久遮挡）
+    // v3.11 splash 移除
     setTimeout(() => {
       const sp = document.getElementById('splash');
       if (sp) sp.remove();
     }, 1800);
+
+    // v3.25 原生通知注册（Capacitor 环境下，用户已不关闭扫描时）
+    if (isNative && CapacitorLN && state.mode === 'empty') {
+      setupNativeNotifications();
+    }
+  }
+
+  // v3.25 原生本地通知（今晚扫描提醒）
+  async function setupNativeNotifications() {
+    try {
+      // 检查权限
+      const perm = await CapacitorLN.checkPermissions();
+      if (perm.display !== 'granted') {
+        // 不强制请求——等用户主动开启扫描时再请求
+        return;
+      }
+      await scheduleNightScan();
+    } catch(e) {}
+  }
+
+  async function scheduleNightScan() {
+    if (!CapacitorLN) return;
+    try {
+      // 每晚 21:00 的扫描提醒（仅在用户没关掉扫描时）
+      const pending = await CapacitorLN.getPending();
+      // 避免重复调度
+      if (pending.notifications && pending.notifications.length > 0) return;
+
+      const now = new Date();
+      const tonight9pm = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 21, 0, 0);
+      if (tonight9pm < now) tonight9pm.setDate(tonight9pm.getDate() + 1);
+
+      await CapacitorLN.schedule({
+        notifications: [{
+          id: 1,
+          title: 'TSD',
+          body: '今天看起来有几个瞬间值得留一下',
+          schedule: {
+            at: tonight9pm,
+            repeats: true,
+            every: 'day',
+          },
+          smallIcon: 'ic_notification',
+          iconColor: '#c8873c',
+        }],
+      });
+    } catch(e) {}
   }
 
   // 暴露分享函数给 onclick
@@ -2843,8 +2967,8 @@
   document.addEventListener('DOMContentLoaded', init);
 })();
 
-// v3.15 Service Worker 注册（离线可用）
-if ('serviceWorker' in navigator) {
+// v3.25 Service Worker：仅 Web 模式注册（Capacitor 原生不需要）
+if (!isNative && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   });
