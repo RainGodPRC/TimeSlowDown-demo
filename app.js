@@ -1333,7 +1333,80 @@
     else if (zoom === 'week') canvas.innerHTML = renderWeekMeadow();
     else if (zoom === 'month') canvas.innerHTML = renderMonthMeadow();
     else if (zoom === 'year') canvas.innerHTML = renderYearMeadow();
-    else if (zoom === 'life') canvas.innerHTML = renderLifeMeadow();
+    else if (zoom === 'life') {
+      canvas.innerHTML = renderLifeMeadow();
+      // v3.23 canvas 渲染人生格子
+      setTimeout(() => drawLifeGridCanvas(), 50);
+    }
+  }
+
+  // v3.23 canvas 人生格子（4160 格用 1 个 canvas 节点渲染）
+  function drawLifeGridCanvas() {
+    const cvs = document.getElementById('life-grid-canvas');
+    if (!cvs) return;
+    const ctx = cvs.getContext('2d');
+    const birth = BIRTH();
+    const nowWeek = Math.floor((TODAY.getTime() - birth.getTime()) / (7 * 24 * 60 * 60 * 1000));
+    const weekMap = {};
+    for (const m of state.moments) {
+      if (m.archived) continue;
+      const d = parseDate(m.date);
+      const w = Math.floor((d.getTime() - birth.getTime()) / (7*24*60*60*1000));
+      if (w >= 0 && w < 4160) weekMap[w] = (weekMap[w]||0)+1;
+    }
+    const cols = 52, rows = 80;
+    const cellW = cvs.width / cols;
+    const cellH = cvs.height / rows;
+    const gap = 1;
+    ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+    for (let w = 0; w < 4160; w++) {
+      const col = w % cols;
+      const row = Math.floor(w / cols);
+      const x = col * cellW + gap/2;
+      const y = row * cellH + gap/2;
+      const cw = cellW - gap;
+      const ch = cellH - gap;
+
+      if (w === nowWeek) {
+        ctx.fillStyle = '#c8873c';
+        ctx.fillRect(x, y, cw, ch);
+        // 脉冲光环
+        ctx.shadowColor = 'rgba(200,135,60,0.6)';
+        ctx.shadowBlur = 6;
+        ctx.fillRect(x, y, cw, ch);
+        ctx.shadowBlur = 0;
+      } else if (w > nowWeek) {
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillRect(x, y, cw, ch);
+        ctx.strokeStyle = 'rgba(232,221,204,0.3)';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(x, y, cw, ch);
+      } else if (weekMap[w]) {
+        ctx.fillStyle = weekMap[w] >= 2 ? '#5d7a5c' : '#c8873c';
+        ctx.fillRect(x, y, cw, ch);
+      } else {
+        ctx.fillStyle = '#d4cab6';
+        ctx.globalAlpha = 0.7;
+        ctx.fillRect(x, y, cw, ch);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    // 点击回填：canvas 坐标 → 周序号
+    cvs.onclick = e => {
+      const rect = cvs.getBoundingClientRect();
+      const scaleX = cvs.width / rect.width;
+      const scaleY = cvs.height / rect.height;
+      const cx = (e.clientX - rect.left) * scaleX;
+      const cy = (e.clientY - rect.top) * scaleY;
+      const col = Math.floor(cx / cellW);
+      const row = Math.floor(cy / cellH);
+      const week = row * cols + col;
+      if (week >= 0 && week < nowWeek && !weekMap[week]) {
+        openBackfill(week);
+      }
+    };
   }
 
   // 人物镜头：按出现频率 + 用户确认，列出重要的人
@@ -1477,25 +1550,18 @@
 
   // 一生地貌：人生格子可点击回填
   function renderLifeMeadow() {
-    const age = Math.floor((TODAY.getTime() - BIRTH().getTime()) / (365.25 * 24 * 60 * 60 * 1000));
-    const nowWeek = Math.floor((TODAY.getTime() - BIRTH().getTime()) / (7 * 24 * 60 * 60 * 1000));
+    const birth = BIRTH();
+    const age = Math.floor((TODAY.getTime() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    const nowWeek = Math.floor((TODAY.getTime() - birth.getTime()) / (7 * 24 * 60 * 60 * 1000));
     const weekMap = {};
     for (const m of state.moments) {
+      if (m.archived) continue;
       const d = parseDate(m.date);
-      const ms = d.getTime() - BIRTH().getTime();
+      const ms = d.getTime() - birth.getTime();
       const w = Math.floor(ms / (7 * 24 * 60 * 60 * 1000));
       if (w >= 0 && w < 4160) weekMap[w] = (weekMap[w] || 0) + 1;
     }
-    const cells = [];
-    for (let w = 0; w < 4160; w++) {
-      let cls = 'life-cell';
-      if (w > nowWeek) cls += ' future';
-      else if (w === nowWeek) cls += ' now';
-      else if (weekMap[w]) cls += weekMap[w] >= 2 ? ' filled-deep' : ' filled';
-      // 加 data-week 属性，便于点击回填（仅过去的周）
-      const dataAttr = (w <= nowWeek && !weekMap[w]) ? `data-week="${w}"` : '';
-      cells.push(`<div class="${cls}" ${dataAttr}></div>`);
-    }
+    // v3.23 性能优化：用 canvas 渲染 4160 格（1 个 DOM 节点替代 4160 个）
     return `
       <div class="chapter-card">
         <div class="chapter-period">一生</div>
@@ -1504,7 +1570,7 @@
           已走过 <b>${nowWeek}</b> 周；<br/>
           其中 <b>${Object.keys(weekMap).length}</b> 周留下了痕迹。
         </div>
-        <div class="life-grid-mini" id="life-grid-mini">${cells.join('')}</div>
+        <canvas class="life-grid-canvas" id="life-grid-canvas" width="624" height="960"></canvas>
         <div class="meadow-summary">
           每一格是一周。填满的格子，是你活过的证据；<br/>
           空白的格子，是还要去活的理由。<br/>

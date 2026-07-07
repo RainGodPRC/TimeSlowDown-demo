@@ -42,8 +42,8 @@
   --r-xl: 28px;
 
   /* 字体系统：明确字号层级 */
-  --font-serif: 'Noto Serif SC', 'Songti SC', serif;
-  --font-sans: 'Noto Sans SC', -apple-system, 'PingFang SC', sans-serif;
+  --font-serif: 'Noto Serif SC', 'Songti SC', 'STSong', 'PingFang SC', serif;
+  --font-sans: -apple-system, 'PingFang SC', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
 
   /* 间距节奏（8px 栅格）*/
   --sp-1: 4px;
@@ -3124,4 +3124,18 @@ button:active:not(:disabled) {
   font-style: italic;
   padding: 0 16px 14px;
   line-height: 1.5;
+}
+
+/* v3.23 人生格子 canvas */
+.life-grid-canvas {
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  aspect-ratio: 624/960;
+  margin: 12px auto;
+  display: block;
+  border-radius: var(--r-xs);
+  background: #fff;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
 }
