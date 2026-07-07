@@ -26,3 +26,11 @@ Pods/
 .env.local
 claude-code-branch/
 codex-branch/
+
+# Capacitor / Node
+node_modules/
+ios/App/Pods/
+ios/App/output/
+ios/App/App/build/
+*.ipa
+DerivedData/

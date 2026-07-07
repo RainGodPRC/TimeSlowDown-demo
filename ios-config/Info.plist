@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- 相册读取权限 -->
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>TSD 需要访问你的照片库，让你选择要 Mark 的瞬间照片。我们不会读取或上传你的其他照片。</string>
+
+    <!-- 相机权限 -->
+    <key>NSCameraUsageDescription</key>
+    <string>TSD 需要使用相机，让你直接拍摄要留住的瞬间。照片仅保存在你的设备上。</string>
+
+    <!-- 保存到相册权限 -->
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>TSD 需要保存你生成的分享故事卡到相册。</string>
+
+    <!-- 通知权限（晚间扫描提醒，用户可选） -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>remote-notification</string>
+    </array>
+
+    <!-- App 主题 -->
+    <key>UIStatusBarStyle</key>
+    <string>UIStatusBarStyleDefault</string>
+
+    <!-- 支持竖屏 -->
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+    </array>
+
+    <!-- 启动屏 -->
+    <key>UILaunchScreen</key>
+    <dict>
+        <key>UIColorName</key>
+        <string>LaunchScreenBackground</string>
+        <key>UIImageName</key>
+        <string>Splash</string>
+        <key>UIImageRespectsSafeAreaInsets</key>
+        <true/>
+    </dict>
+
+    <!-- App 短名称（主屏幕显示） -->
+    <key>CFBundleDisplayName</key>
+    <string>TSD</string>
+
+    <!-- 隐私清单（iOS 17+） -->
+    <key>NSPrivacyTracking</key>
+    <false/>
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array/>
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array>
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>CA92.1</string>
+            </array>
+        </dict>
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>C617.1</string>
+            </array>
+        </dict>
+    </array>
+</dict>
+</plist>
