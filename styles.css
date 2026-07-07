@@ -800,25 +800,79 @@ html, body {
 }
 
 /* ============ 完成反馈（R2：静默） ============ */
+/* v3.29 #8 仪式感升级 */
 .compose-done {
   position: absolute; inset: 0;
-  background: rgba(250, 246, 239, 0.95);
-  backdrop-filter: blur(10px);
+  background: linear-gradient(180deg, rgba(250, 246, 239, 0.98) 0%, rgba(240, 230, 208, 0.98) 100%);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
   display: none; flex-direction: column; align-items: center; justify-content: center;
   z-index: 250;
 }
-.compose-done.show { display: flex; animation: fadeIn 0.3s ease; }
+.compose-done.show { display: flex; animation: doneEnter 0.5s var(--ease-out); }
+@keyframes doneEnter {
+  from { opacity: 0; backdrop-filter: blur(0); }
+  to   { opacity: 1; backdrop-filter: blur(20px); }
+}
 .done-icon {
-  width: 72px; height: 72px; border-radius: 50%;
-  background: var(--amber); color: #fff;
+  width: 88px; height: 88px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--amber) 0%, var(--amber-deep) 100%);
+  color: #fff;
   display: flex; align-items: center; justify-content: center;
-  font-size: 36px; margin-bottom: 18px;
-  box-shadow: 0 8px 24px rgba(200, 135, 60, 0.4);
+  font-size: 44px; margin-bottom: 22px;
+  box-shadow: 0 12px 36px rgba(200, 135, 60, 0.5), 0 4px 12px rgba(200, 135, 60, 0.3);
+  animation: doneIconPop 0.6s var(--ease-spring) 0.1s both;
+}
+@keyframes doneIconPop {
+  0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+  60% { transform: scale(1.15) rotate(5deg); }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
 }
 .done-text {
-  font-family: var(--font-serif); font-size: 22px; color: var(--ink); margin-bottom: 6px;
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 8px;
+  animation: doneTextEnter 0.5s var(--ease-out) 0.3s both;
 }
-.done-sub { font-size: 12px; color: var(--ink-soft); text-align: center; padding: 0 30px; }
+@keyframes doneTextEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.done-sub {
+  font-size: 13px;
+  color: var(--ink-soft);
+  text-align: center;
+  padding: 0 30px;
+  animation: doneTextEnter 0.5s var(--ease-out) 0.5s both;
+}
+
+/* v3.29 #2 迷你操作按钮 */
+.card-mini-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+.mini-action-btn {
+  background: none;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 4px;
+  opacity: 0.5;
+  transition: opacity 0.2s, transform 0.15s;
+  line-height: 1;
+}
+.mini-action-btn:hover { opacity: 1; transform: scale(1.2); }
+.mini-action-btn:active { transform: scale(0.9); }
+.untold-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+.mini-tuck:hover { opacity: 0.8; }
 
 /* ============ 底部 Tab ============ */
 .tab-bar {
@@ -3138,4 +3192,48 @@ button:active:not(:disabled) {
   background: #fff;
   box-shadow: var(--shadow-sm);
   cursor: pointer;
+}
+
+/* v3.29 #7 旷野引导 */
+.meadow-intro-card {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.7;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(253,246,232,0.8), rgba(245,230,200,0.6));
+  border-radius: var(--r-sm);
+  border-left: 3px solid var(--amber-soft);
+  margin-bottom: 16px;
+  font-style: italic;
+  animation: fadeIn 0.5s ease;
+}
+
+/* v3.29 #4 地图改进 */
+.map-hint {
+  font-size: 11px;
+  color: var(--ink-faint);
+  line-height: 1.6;
+  padding: 8px 14px;
+  background: var(--bg-warm);
+  border-radius: var(--r-xs);
+  margin-bottom: 14px;
+}
+.map-pin-inner {
+  background-size: cover !important;
+  background-position: center !important;
+}
+.map-legend-thumb {
+  width: 36px; height: 36px;
+  border-radius: var(--r-xs);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.map-legend-body { flex: 1; min-width: 0; }
+.map-legend-sub {
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

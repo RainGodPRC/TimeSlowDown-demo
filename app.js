@@ -261,7 +261,7 @@ if (isNative) {
   // 本周的瞬间
   function getWeekMoments() {
     const wk = weekKey(todayStr());
-    return state.moments.filter(m => weekKey(m.date) === wk);
+    return state.moments.filter(m => weekKey(m.date) === wk && !m.archived);  // v3.29 #1#6: 排除收起的
   }
 
   // ============================================================
@@ -736,6 +736,10 @@ if (isNative) {
                   ${m.location && m.location !== '—' ? `<span>· ${escapeHtml(m.location)}</span>` : ''}
                   ${m.people && m.people.length ? `<span>· ${m.people.map(escapeHtml).join('、')}</span>` : ''}
                 </div>
+                <div class="card-mini-actions">
+                  <button class="mini-action-btn" data-edit="${m.id}">✏️</button>
+                  <button class="mini-action-btn mini-tuck" data-tuck="${m.id}">📦</button>
+                </div>
               </div>
             </div>
           `);
@@ -746,7 +750,7 @@ if (isNative) {
 
     // 未讲（草）+ 升级按钮
     if (untold.length > 0) {
-      html.push('<div class="section-label" style="margin-top:24px">这周的瞬间</div>');
+      html.push('<div class="section-label" style="margin-top:24px">这周的瞬间 <span class="label-hint">（Mark 了就算留住，点"说点什么"可以补充为什么重要）</span></div>');
       html.push('<div class="untold-list">');
       untold.forEach(m => {
         const mood = MOODS[m.mood];
@@ -757,7 +761,10 @@ if (isNative) {
               <div class="untold-text">${mood.emoji} ${escapeHtml(m.text)}</div>
               <div class="untold-meta">${fmtDate(m.date)}</div>
             </div>
-            <button class="untold-upgrade-btn" data-upgrade="${m.id}">说点什么</button>
+            <div class="untold-actions">
+              <button class="untold-upgrade-btn" data-upgrade="${m.id}">说点什么</button>
+              <button class="mini-action-btn mini-tuck" data-tuck="${m.id}" title="收起">📦</button>
+            </div>
           </div>
         `);
       });
@@ -880,6 +887,14 @@ if (isNative) {
     });
     scroll.querySelectorAll('.night-scan-item').forEach(item => {
       item.addEventListener('click', () => openUpgrade(item.dataset.upgrade));
+    });
+
+    // v3.29 #2：这一周页面的编辑/收起按钮
+    scroll.querySelectorAll('[data-edit]').forEach(btn => {
+      btn.addEventListener('click', () => openEditMoment(btn.dataset.edit));
+    });
+    scroll.querySelectorAll('[data-tuck]').forEach(btn => {
+      btn.addEventListener('click', () => { archiveMoment(btn.dataset.tuck); renderTell(); });
     });
 
     // v3.8：周末章节编译入口
@@ -1471,6 +1486,37 @@ ${素材}
       theme: '家庭、创造、工作、远方——它们如何变化？',
     }[lens];
     document.getElementById('meadow-semantic').textContent = lensSemantic;
+
+    // v3.29 #7：旷野引导说明（让新用户看懂这一页是干啥的）
+    const intro = document.getElementById('meadow-intro');
+    if (intro) {
+      const intros = {
+        time: {
+          today: '今天留下的瞬间，会长成这里的草和花。',
+          week: '🌿 是你 Mark 的瞬间，🌸 是你讲过的故事。草和花都在生长——不会枯萎。',
+          month: '每个月的花丛，是由你这一月的瞬间长出来的。',
+          year: '一个季度结束，你的三个月会长成一幅风景。',
+          life: '4160 格 = 80 年 × 52 周。每一格是一周。你活过的，都被点亮了。',
+        },
+        people: '出现在你的瞬间里的人，会在这里长成关系树。',
+        theme: '你的瞬间按心情和主题分类——看看哪些情绪贯穿了你的生活。',
+      };
+      let introText = '';
+      if (lens === 'time') {
+        introText = intros.time[zoom] || intros.time.week;
+      } else {
+        introText = intros[lens];
+      }
+      // 只有前 3 次访问显示引导（之后用户懂了）
+      const visits = parseInt(localStorage.getItem('tsd_meadow_visits') || '0');
+      if (visits < 5) {
+        intro.innerHTML = `<div class="meadow-intro-card">${escapeHtml(introText)}</div>`;
+        localStorage.setItem('tsd_meadow_visits', String(visits + 1));
+      } else {
+        intro.innerHTML = '';
+      }
+    }
+
     const canvas = document.getElementById('meadow-canvas');
 
     // 空状态
@@ -2259,9 +2305,9 @@ ${素材}
   // 地图视图（抽象网格——按 location 聚类，无真实地图依赖）
   function renderArchiveMap(sorted) {
     const list = document.getElementById('archive-list');
-    const located = sorted.filter(m => m.location && m.location !== '—');
+    const located = sorted.filter(m => m.location && m.location !== '—' && !m.archived);
     if (located.length === 0) {
-      list.innerHTML = `<div class="archive-empty"><div style="font-size:32px;margin-bottom:12px">📍</div><div>还没有标记地点的瞬间</div><div style="margin-top:8px">Mark 时加上地点，这里会显示地图</div></div>`;
+      list.innerHTML = `<div class="archive-empty"><div style="font-size:32px;margin-bottom:12px">📍</div><div>还没有标记地点的瞬间</div><div style="margin-top:8px">Mark 时加上地点，这里会显示地图。<br/>不是真实地图——是你的记忆按地点聚类的视觉。</div></div>`;
       return;
     }
 
@@ -2275,33 +2321,50 @@ ${素材}
 
     list.innerHTML = `
       <div class="map-view">
+        <div class="map-hint">📌 这是你的记忆地图——按地点聚类，不是 GPS 定位。<br/>每个圆点代表一个你去过并留下记忆的地方。</div>
         <div class="map-canvas">
           ${locs.map(([loc, ms], idx) => {
-            const angle = (idx * 137.5) % 360;  // 黄金角分布
+            const angle = (idx * 137.5) % 360;
             const radius = 20 + (idx % 3) * 18;
             const x = 50 + Math.cos(angle * Math.PI / 180) * radius;
             const y = 50 + Math.sin(angle * Math.PI / 180) * radius;
             const size = Math.min(80, 30 + ms.length * 8);
+            // v3.29 #4：优先用照片做 pin 背景
+            const photoMs = ms.filter(m => m.image);
+            const bestPhoto = photoMs[0]?.image;
             return `
               <div class="map-pin" style="
                 left: ${x}%; top: ${y}%;
                 width: ${size}px; height: ${size}px;
                 animation: pinDrop 0.6s var(--ease-spring) ${idx * 0.1}s both;
               " data-loc="${escapeHtml(loc)}">
-                <div class="map-pin-inner">${ms.length}</div>
+                <div class="map-pin-inner" ${bestPhoto ? `style="background-image:url('${bestPhoto}');background-size:cover;background-position:center"` : ''}>
+                  ${bestPhoto ? '' : ms.length}
+                </div>
                 <div class="map-pin-label">${escapeHtml(loc)}</div>
               </div>
             `;
           }).join('')}
         </div>
         <div class="map-legend">
-          ${locs.map(([loc, ms]) => `
-            <div class="map-legend-item">
-              <span class="map-legend-emoji">📍</span>
-              <span class="map-legend-loc">${escapeHtml(loc)}</span>
-              <span class="map-legend-count">${ms.length} 个瞬间</span>
-            </div>
-          `).join('')}
+          ${locs.map(([loc, ms]) => {
+            // #4：legend 也优先显示照片/人物/事件
+            const best = ms.find(m => m.image) || ms.find(m => m.people && m.people.length) || ms[0];
+            const mood = MOODS[best.mood];
+            const subtitle = best.people && best.people.length
+              ? best.people.map(escapeHtml).join('、')
+              : best.text.slice(0, 20);
+            return `
+              <div class="map-legend-item">
+                ${best.image ? `<img class="map-legend-thumb" src="${best.image}" alt=""/>` : `<span class="map-legend-emoji">${mood.emoji}</span>`}
+                <div class="map-legend-body">
+                  <div class="map-legend-loc">${escapeHtml(loc)}</div>
+                  <div class="map-legend-sub">${escapeHtml(subtitle)}</div>
+                </div>
+                <span class="map-legend-count">${ms.length}</span>
+              </div>
+            `;
+          }).join('')}
         </div>
       </div>
     `;
@@ -2505,9 +2568,8 @@ ${素材}
       return;
     }
 
-    // 判断层级
-    let level = 0;
-    if (text && text.length >= 5) level = 1;  // 有"为什么"算 L1
+    // v3.29 修复 #5：录入时的文字不算"为什么"，所有 Mark 从 L0 开始
+    // "为什么"只能通过"说点什么"升级流填写
     const newM = {
       id: 'new-' + Date.now(),
       date: todayStr(),
@@ -2518,28 +2580,40 @@ ${素材}
       people: people ? people.split(/[、,，]/).map(s => s.trim()).filter(Boolean) : [],
       isFirst,
       image: imgSrc,
-      level,
-      toldAt: level >= 1 ? todayStr() : null,
-      why: level >= 1 ? text : null,
+      level: 0,
+      toldAt: null,
+      why: null,
     };
     state.moments.unshift(newM);
     saveMoments();
 
-    // 反馈（R2：静默，不发奖励）
+    // v3.29 #8：仪式感反馈（不再静默——用户反馈说"没有满足感"）
     const done = document.getElementById('compose-done');
-    let sub;
-    if (level === 0) {
-      sub = '这是一个 L0 Mark。Mark 了就算讲过。';
-    } else {
-      sub = '这是一个 L1 故事。它会被你记住。';
-    }
-    document.getElementById('done-sub').textContent = sub;
+    const doneIcon = done.querySelector('.done-icon');
+    const doneText = done.querySelector('.done-text');
+
+    // 统计总 Mark 数，给进度感
+    const totalMarks = state.moments.filter(m => !m.archived).length;
+    const phrases = [
+      '留住了。这一刻不会消失了。',
+      '又一个瞬间被你留住了。',
+      `${totalMarks} 个瞬间——你的旷野在生长。`,
+      '它会在你回头看时等着你。',
+      '这一刻，没有被时间吞掉。',
+    ];
+    const phrase = phrases[Math.min(totalMarks - 1, phrases.length - 1)] || phrases[phrases.length - 1];
+
+    // 随机换 icon 给新鲜感
+    const icons = ['✓', '🌿', '🌸', '🍃', '🌅'];
+    if (doneIcon) doneIcon.textContent = icons[Math.min(totalMarks - 1, icons.length - 1)] || '✓';
+    if (doneText) doneText.textContent = phrase.includes('。') ? phrase.split('。')[0] + '。' : phrase;
+    document.getElementById('done-sub').textContent = totalMarks <= 3 ? `这是你的第 ${totalMarks} 个瞬间` : '';
     done.classList.add('show');
     setTimeout(() => {
       done.classList.remove('show');
       switchView('tell');
       checkMilestones();  // v3.19 检查是否获得新印记
-    }, 1500);
+    }, 2200);  // v3.29 #8: 延长到 2.2s 让仪式感更充分
   }
 
   // ============================================================
