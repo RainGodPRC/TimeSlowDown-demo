@@ -1442,6 +1442,122 @@
     `;
   }
 
+  // ============================================================
+  // v3.20 季度回忆仪式（北极星交付物）
+  // ============================================================
+  function showSeasonRitual() {
+    const ritual = SEASON_RITUAL['2026-Q2'];
+    const qMoments = ritual.keyMoments.map(id => getMoment(id)).filter(Boolean);
+    const ov = document.getElementById('upgrade-overlay');
+    const card = ov.querySelector('.upgrade-card');
+
+    // 第 1 步：自由回忆
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-title">九十日回忆仪式</span>
+        <button class="upgrade-close" id="ritual-close">×</button>
+      </div>
+      <div class="upgrade-body ritual-body" id="ritual-body">
+        <div class="ritual-step" id="ritual-step-1">
+          <div style="text-align:center;padding:20px 0">
+            <div style="font-size:48px;margin-bottom:14px">🕯️</div>
+            <p style="font-family:var(--font-serif);font-size:20px;color:var(--ink);line-height:1.6;margin-bottom:10px">闭上眼，<br/>用 60 秒回想这三个月</p>
+            <p style="font-size:13px;color:var(--ink-soft);line-height:1.7;margin-bottom:20px">不需要翻档案。<br/>最先浮现的几个经历是什么？<br/>它们就是你真正记住的。</p>
+            <div class="ritual-timer" id="ritual-timer">60</div>
+            <div style="display:flex;gap:8px;margin-top:20px">
+              <button class="upgrade-btn" id="ritual-skip" style="background:var(--bg-warm);color:var(--ink-soft);flex:1">跳过</button>
+              <button class="upgrade-btn" id="ritual-start" style="flex:1">开始回忆</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    ov.classList.add('show');
+    card.querySelector('#ritual-close').addEventListener('click', () => ov.classList.remove('show'));
+    card.querySelector('#ritual-skip').addEventListener('click', () => showSeasonRitualReveal(card, ritual, qMoments, []));
+    card.querySelector('#ritual-start').addEventListener('click', () => {
+      // 60 秒倒计时
+      let sec = 60;
+      const timer = card.querySelector('#ritual-timer');
+      timer.classList.add('running');
+      const interval = setInterval(() => {
+        sec--;
+        if (sec <= 0) {
+          clearInterval(interval);
+          showSeasonRitualReveal(card, ritual, qMoments, []);
+        } else {
+          timer.textContent = sec;
+          if (sec <= 10) timer.classList.add('urgent');
+        }
+      }, 1000);
+    });
+  }
+
+  function showSeasonRitualReveal(card, ritual, qMoments, freeRecall) {
+    const toldMoments = state.moments.filter(m => m.toldAt);
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-title">九十日回忆仪式</span>
+        <button class="upgrade-close" id="ritual-close2">×</button>
+      </div>
+      <div class="upgrade-body ritual-body">
+        <div class="ritual-reveal">
+          <p class="ritual-intro">这三个月，你留住了 <b>${state.moments.length}</b> 个瞬间，<br/>讲出了 <b>${toldMoments.length}</b> 个故事。</p>
+
+          <div class="ritual-section-label">13 个周</div>
+          <div class="ritual-week-grid">
+            ${Array.from({length: 13}, (_, i) => {
+              const has = i < 5;  // 示例：5 周有内容
+              return `<div class="ritual-week-cell ${has ? 'lit' : ''}"></div>`;
+            }).join('')}
+          </div>
+
+          <div class="ritual-section-label">3 幅月风景</div>
+          <div class="ritual-months">
+            <div class="ritual-month">4 月<br/><span>新的开始</span></div>
+            <div class="ritual-month">5 月<br/><span>京都</span></div>
+            <div class="ritual-month">6 月<br/><span>开花</span></div>
+          </div>
+
+          <div class="ritual-section-label">你最鲜明的那几个</div>
+          <div class="ritual-key-moments">
+            ${qMoments.map(m => {
+              const mood = MOODS[m.mood];
+              return `
+                <div class="ritual-moment">
+                  ${m.image ? `<img src="${m.image}" alt=""/>` : ''}
+                  <div class="ritual-moment-body">
+                    <div class="ritual-moment-text">${mood.emoji} ${escapeHtml(m.text)}</div>
+                    ${m.why ? `<div class="ritual-moment-why">"${escapeHtml(m.why)}"</div>` : ''}
+                    <div class="ritual-moment-date">${fmtDate(m.date)}</div>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+
+          <div class="ritual-quote">
+            <p>${escapeHtml(ritual.opening)}</p>
+          </div>
+
+          <div class="ritual-self-know">
+            <p>这些都是你留住并讲过的。<br/>真正的记忆，是看到线索后能<b>重新讲出来</b>的那些。</p>
+            <p style="margin-top:8px;color:var(--ink-faint);font-size:12px">不显示记忆力分数，不与他人比较。<br/>这个仪式只是陪你看看——这三个月没有被时间吞掉。</p>
+          </div>
+
+          <button class="upgrade-btn" id="ritual-done">完成仪式</button>
+          <button class="story-share-btn" style="margin-top:8px" onclick="window.__TSD_SHARE_SEASON()">📤 分享这一季</button>
+        </div>
+      </div>
+    `;
+    card.querySelector('#ritual-close2').addEventListener('click', () => document.getElementById('upgrade-overlay').classList.remove('show'));
+    card.querySelector('#ritual-done').addEventListener('click', () => {
+      document.getElementById('upgrade-overlay').classList.remove('show');
+      showToast('九十日仪式完成 · 这三个月没有消失');
+      checkMilestones();
+    });
+  }
+
   // 过去回填
   function openBackfill(weekIndex) {
     const ov = document.getElementById('upgrade-overlay');
@@ -1527,7 +1643,12 @@
         <div class="meadow-summary" style="margin-top:14px">
           ${q2.weekChapterCount} 个周章节 · ${q2.monthLandscapeCount} 个月风景 · ${q2.keyMoments.length} 个核心瞬间
         </div>
-        ${q2.shareable ? `<button class="story-share-btn" onclick="window.__TSD_SHARE_SEASON()">📤 分享这一季</button>` : ''}
+        ${q2.shareable ? `
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="story-share-btn" style="flex:1" onclick="window.__TSD_SHARE_SEASON()">📤 分享</button>
+            <button class="story-share-btn" style="flex:1;background:var(--moss)" id="season-ritual-btn">🎬 季度回忆仪式</button>
+          </div>
+        ` : ''}
       </div>
       <div class="chapter-card">
         <div class="chapter-period">2026 · 第一季度</div>
@@ -2162,6 +2283,9 @@
     document.getElementById('meadow-canvas').addEventListener('click', e => {
       const cell = e.target.closest('[data-week]');
       if (cell) openBackfill(parseInt(cell.dataset.week, 10));
+      // v3.20 季度仪式入口
+      const ritualBtn = e.target.closest('#season-ritual-btn');
+      if (ritualBtn) showSeasonRitual();
     });
 
     // 搜索（v3.10）

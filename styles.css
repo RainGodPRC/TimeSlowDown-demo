@@ -2864,3 +2864,164 @@ button:active:not(:disabled) {
   color: var(--ink-faint);
   line-height: 1.5;
 }
+
+/* v3.20 季度回忆仪式 */
+.ritual-body { padding: 0 20px 20px; }
+.ritual-timer {
+  font-family: var(--font-serif);
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--amber-deep);
+  line-height: 1;
+  margin: 10px 0;
+  transition: color 0.3s;
+}
+.ritual-timer.running { animation: timerPulse 1s ease-in-out infinite; }
+.ritual-timer.urgent { color: #c54455; animation: timerUrgent 0.5s ease-in-out infinite; }
+@keyframes timerPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+}
+@keyframes timerUrgent {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.ritual-reveal { animation: fadeIn 0.5s ease; }
+.ritual-intro {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--ink);
+  text-align: center;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--bg-warm);
+  border-radius: var(--r-sm);
+}
+.ritual-intro b { color: var(--amber-deep); font-size: 22px; }
+
+.ritual-section-label {
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 20px 0 10px;
+}
+
+.ritual-week-grid {
+  display: grid;
+  grid-template-columns: repeat(13, 1fr);
+  gap: 3px;
+  margin-bottom: 8px;
+}
+.ritual-week-cell {
+  aspect-ratio: 1;
+  background: var(--bg-warm);
+  border-radius: 2px;
+}
+.ritual-week-cell.lit {
+  background: var(--amber);
+  animation: cellLight 0.4s var(--ease-spring) both;
+}
+@keyframes cellLight {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.ritual-months {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.ritual-month {
+  text-align: center;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  padding: 12px 8px;
+  background: linear-gradient(135deg, rgba(253,246,232,0.9), rgba(245,230,200,0.8));
+  border-radius: var(--r-sm);
+  border: 1px solid var(--amber-soft);
+}
+.ritual-month span {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+
+.ritual-key-moments {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.ritual-moment {
+  display: flex;
+  gap: 10px;
+  background: var(--bg-paper);
+  padding: 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line-soft);
+  animation: momentEnter 0.4s var(--ease-out) both;
+}
+.ritual-moment:nth-child(2) { animation-delay: 0.1s; }
+.ritual-moment:nth-child(3) { animation-delay: 0.2s; }
+.ritual-moment:nth-child(4) { animation-delay: 0.3s; }
+@keyframes momentEnter {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.ritual-moment img {
+  width: 48px; height: 48px;
+  border-radius: var(--r-xs);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.ritual-moment-body { flex: 1; min-width: 0; }
+.ritual-moment-text {
+  font-size: 13px;
+  color: var(--ink);
+  line-height: 1.4;
+  margin-bottom: 3px;
+}
+.ritual-moment-why {
+  font-family: var(--font-serif);
+  font-size: 12px;
+  color: var(--amber-deep);
+  font-style: italic;
+  line-height: 1.5;
+}
+.ritual-moment-date {
+  font-size: 10px;
+  color: var(--ink-faint);
+  margin-top: 3px;
+}
+
+.ritual-quote {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-style: italic;
+  color: var(--ink);
+  line-height: 1.85;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(253,246,232,0.6), rgba(245,230,200,0.5));
+  border-radius: var(--r-sm);
+  border-left: 3px solid var(--amber);
+  margin-bottom: 20px;
+}
+
+.ritual-self-know {
+  padding: 14px 16px;
+  background: var(--bg-warm);
+  border-radius: var(--r-sm);
+  margin-bottom: 20px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.7;
+}
+.ritual-self-know b { color: var(--amber-deep); }
