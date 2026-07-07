@@ -86,6 +86,65 @@
     } catch (e) {}
   }
 
+  // ============================================================
+  // v3.22 记忆浮现（可变回报钩子）
+  // ============================================================
+  function getMemoryResurface() {
+    if (state.mode !== 'empty') return null;
+    if (state.moments.length < 3) return null;
+    // 当天是否触发（30% 概率，每天最多一次）
+    try {
+      const today = todayStr();
+      const lastShown = localStorage.getItem('tsd_resurface_date');
+      if (lastShown === today) return null;
+      if (Math.random() > 0.35) return null;  // 35% 概率
+      // 找 N 天前的瞬间（7/14/30/90 天）
+      const intervals = [7, 14, 30, 90];
+      const candidates = [];
+      for (const days of intervals) {
+        const target = new Date(TODAY.getTime() - days * 24 * 60 * 60 * 1000);
+        const targetStr = `${target.getFullYear()}-${String(target.getMonth()+1).padStart(2,'0')}-${String(target.getDate()).padStart(2,'0')}`;
+        // 找 target ± 2 天内的瞬间
+        const matches = state.moments.filter(m => {
+          const d = parseDate(m.date);
+          const diff = Math.abs(d.getTime() - target.getTime()) / (24*60*60*1000);
+          return diff <= 2 && !m.archived;
+        });
+        if (matches.length > 0) {
+          candidates.push({ days, moment: matches[Math.floor(Math.random() * matches.length)] });
+        }
+      }
+      if (candidates.length === 0) return null;
+      const pick = candidates[Math.floor(Math.random() * candidates.length)];
+      localStorage.setItem('tsd_resurface_date', today);
+      return pick;
+    } catch(e) { return null; }
+  }
+
+  function renderResurfaceCard() {
+    const r = getMemoryResurface();
+    if (!r) return '';
+    const m = r.moment;
+    const mood = MOODS[m.mood];
+    const ago = r.days === 7 ? '一周前' : r.days === 14 ? '两周前' : r.days === 30 ? '一个月前' : '三个月前';
+    return `
+      <div class="resurface-card" id="resurface-card">
+        <div class="resurface-header">
+          <span class="resurface-emoji">🕰️</span>
+          <span class="resurface-label">${ago}的今天</span>
+          <button class="resurface-close" id="resurface-close">×</button>
+        </div>
+        ${m.image ? `<img class="resurface-img" src="${m.image}" alt=""/>` : ''}
+        <div class="resurface-body">
+          <div class="resurface-text">${mood.emoji} ${escapeHtml(m.text)}</div>
+          ${m.why ? `<div class="resurface-why">"${escapeHtml(m.why)}"</div>` : ''}
+          <div class="resurface-meta">${fmtDate(m.date)}${m.people && m.people.length ? ' · ' + m.people.map(escapeHtml).join('、') : ''}</div>
+        </div>
+        <p class="resurface-hint">看到这个瞬间，你还记得当时的感受吗？</p>
+      </div>
+    `;
+  }
+
   // v3.18 生日登记
   function showBirthRegistration() {
     const ov = document.getElementById('upgrade-overlay');
@@ -600,6 +659,9 @@
     // v3.6：今晚扫描卡片（顶部，反 streak：可忽略、不积累）
     const scanCard = renderNightScanCard();
     if (scanCard) html.push(scanCard);
+    // v3.22：记忆浮现（可变回报，有时出现）
+    const resurface = renderResurfaceCard();
+    if (resurface) html.push(resurface);
     html.push(`
       <div class="challenge-invite">
         <div class="invite-period">这一周</div>
@@ -782,6 +844,12 @@
     if (scanClose) scanClose.addEventListener('click', () => { state.scanDisabled = true; renderTell(); });
     const scanSkip = document.getElementById('scan-skip');
     if (scanSkip) scanSkip.addEventListener('click', () => { state.scanIgnoredToday = true; renderTell(); });
+    // v3.22 记忆浮现关闭
+    const resurfaceClose = document.getElementById('resurface-close');
+    if (resurfaceClose) resurfaceClose.addEventListener('click', () => {
+      const c = document.getElementById('resurface-card');
+      if (c) { c.style.opacity = '0'; c.style.transform = 'scale(0.95)'; setTimeout(() => c.remove(), 300); }
+    });
     scroll.querySelectorAll('.night-scan-item').forEach(item => {
       item.addEventListener('click', () => openUpgrade(item.dataset.upgrade));
     });
