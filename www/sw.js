@@ -1,5 +1,5 @@
 // TSD Service Worker v3.15
-const CACHE = 'tsd-v3.15';
+const CACHE = 'tsd-v3.40';
 const ASSETS = [
   './',
   './index.html',
