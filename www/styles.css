@@ -3689,3 +3689,31 @@ button:active:not(:disabled) {
   cursor: pointer;
   font-family: var(--font-sans);
 }
+
+/* v3.36 社会认同 + 微承诺 */
+.onb-social-proof {
+  font-size: 12px;
+  color: var(--moss-deep);
+  text-align: center;
+  padding: 12px 16px;
+  margin: 16px 0;
+  background: rgba(168,192,160,0.1);
+  border-radius: var(--r-sm);
+  border: 1px solid rgba(168,192,160,0.2);
+  line-height: 1.7;
+  white-space: pre-line;
+  font-style: italic;
+}
+.onb-micro-commit {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--amber-deep);
+  text-align: center;
+  padding: 14px 20px;
+  margin: 20px 0;
+  background: linear-gradient(135deg, rgba(253,246,232,0.8), rgba(245,230,200,0.6));
+  border-radius: var(--r-sm);
+  border: 1px solid var(--amber-soft);
+  line-height: 1.6;
+}

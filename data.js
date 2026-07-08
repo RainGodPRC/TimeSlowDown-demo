@@ -197,11 +197,12 @@ const ONBOARDING = {
       skipText: null,
     },
     {
-      // 第 3 屏 · 承诺（三个月讲得出故事）
+      // 第 3 屏 · 承诺（三个月讲得出故事）+ 社会认同
       eyebrow: 'TSD 想做的事',
       headline: '三个月后，\n你能讲出 5–10 个\n鲜明的瞬间。',
       sub: '不是记日记，不是相册。\n只在某个瞬间划一下重点，\nTSD 帮你回头讲得出。',
-      visual: 'story',           // 一张季故事卡预览
+      socialProof: '已有很多人开始用 TSD 对抗时间飞逝。\n你不会是唯一一个。',
+      visual: 'story',
       cta: '想试试',
       skipText: null,
     },
@@ -215,12 +216,13 @@ const ONBOARDING = {
       skipText: null,
     },
     {
-      // 第 5 屏 · 行动（极简，直接做）
+      // 第 5 屏 · 行动 + 微承诺（承诺一致性）
       eyebrow: '现在试试',
       headline: '留一个瞬间',
       sub: '今天有什么是你想记住的？\n一张照片、一个心情、一句话，\n任何一个都算。',
+      microCommit: '我愿意试试，留住一些瞬间。',
       visual: 'plus',
-      cta: '开始',
+      cta: '好，我试试',
       skipText: '先看看示例',
     },
   ],

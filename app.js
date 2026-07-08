@@ -483,6 +483,8 @@ if (isNative) {
       <div class="onb-eyebrow">${escapeHtml(step.eyebrow)}</div>
       <div class="onb-headline">${escapeHtml(step.headline)}</div>
       <div class="onb-sub">${escapeHtml(step.sub)}</div>
+      ${step.socialProof ? `<div class="onb-social-proof">${escapeHtml(step.socialProof)}</div>` : ''}
+      ${step.microCommit ? `<div class="onb-micro-commit">${escapeHtml(step.microCommit)}</div>` : ''}
       <button class="onb-cta" id="onb-cta">${escapeHtml(step.cta)}</button>
       ${step.skipText ? `<button class="onb-skip" id="onb-skip">${escapeHtml(step.skipText)}</button>` : ''}
     `;
@@ -561,6 +563,8 @@ if (isNative) {
       <div class="onb-eyebrow">${escapeHtml(step.eyebrow)}</div>
       <div class="onb-headline">${escapeHtml(step.headline)}</div>
       <div class="onb-sub">${escapeHtml(step.sub)}</div>
+      ${step.socialProof ? `<div class="onb-social-proof">${escapeHtml(step.socialProof)}</div>` : ''}
+      ${step.microCommit ? `<div class="onb-micro-commit">${escapeHtml(step.microCommit)}</div>` : ''}
       <button class="onb-cta" id="onb-cta">${escapeHtml(step.cta)}</button>
       ${step.skipText ? `<button class="onb-skip" id="onb-skip">${escapeHtml(step.skipText)}</button>` : ''}
     `;
