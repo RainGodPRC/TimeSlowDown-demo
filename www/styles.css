@@ -3717,3 +3717,98 @@ button:active:not(:disabled) {
   border: 1px solid var(--amber-soft);
   line-height: 1.6;
 }
+
+/* v3.37 首月回顾 */
+.first-month-review {
+  text-align: center;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.fmr-emoji {
+  font-size: 48px;
+  margin-bottom: 8px;
+  animation: milestonePop 0.6s var(--ease-spring) both;
+}
+.fmr-label {
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--amber-deep);
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+.fmr-title {
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 14px;
+}
+.fmr-intro {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-style: italic;
+  color: var(--ink-soft);
+  line-height: 1.8;
+  margin-bottom: 24px;
+  padding: 0 10px;
+}
+.fmr-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.fmr-stat {
+  text-align: center;
+  padding: 10px 4px;
+  background: rgba(255,253,248,0.6);
+  border-radius: var(--r-xs);
+}
+.fmr-num {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--amber-deep);
+}
+.fmr-lbl {
+  display: block;
+  font-size: 10px;
+  color: var(--ink-faint);
+  margin-top: 2px;
+}
+.fmr-highlights {
+  text-align: left;
+  margin-bottom: 24px;
+}
+.fmr-hl-label {
+  font-size: 12px;
+  color: var(--amber-deep);
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+}
+.fmr-hl-item {
+  font-size: 13px;
+  color: var(--ink);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line-soft);
+  line-height: 1.5;
+}
+.fmr-hl-date {
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-left: 8px;
+}
+.fmr-closing {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-style: italic;
+  color: var(--amber-deep);
+  line-height: 1.7;
+  margin-bottom: 20px;
+  padding: 14px;
+  background: linear-gradient(135deg, rgba(253,246,232,0.6), rgba(245,230,200,0.4));
+  border-radius: var(--r-sm);
+}

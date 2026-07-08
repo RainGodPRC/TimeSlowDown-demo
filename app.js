@@ -21,7 +21,7 @@ if (isNative) {
 }
 
 (() => {
-  const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, ONBOARDING, NIGHT_SCAN, WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES, COMPOUND_LOOPS, DAILY_WORDS, TODAY_DIFFERENCE, TOMORROW_PREVIEW, TIME_GREETINGS, WELCOME_MILESTONES } = window.__TSD_DATA__;
+  const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, ONBOARDING, NIGHT_SCAN, WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES, COMPOUND_LOOPS, DAILY_WORDS, TODAY_DIFFERENCE, TOMORROW_PREVIEW, TIME_GREETINGS, WELCOME_MILESTONES, FIRST_MONTH_REVIEW } = window.__TSD_DATA__;
 
   // ============ 数据模式 ============
   // 'onboarding' 首启动 | 'empty' 空状态（用户自己用）| 'demo' 示例数据（陈雨）
@@ -1897,6 +1897,177 @@ ${素材}
     ov.addEventListener('click', function closeGift(e) {
       if (e.target === ov) { ov.classList.remove('show'); ov.removeEventListener('click', closeGift); }
     });
+  }
+
+  // ============================================================
+  // v3.37 首月回顾（30 天惊喜 + 社交货币长图）
+  // ============================================================
+  function checkFirstMonthReview() {
+    const firstMark = state.moments.find(m => m.id.startsWith('new-'));
+    if (!firstMark) return;
+    const days = Math.floor((TODAY.getTime() - parseDate(firstMark.date).getTime()) / (24*60*60*1000));
+    if (days + 1 < FIRST_MONTH_REVIEW.triggerDays) return;
+    // 只弹一次
+    try {
+      if (localStorage.getItem('tsd_first_month_shown')) return;
+      localStorage.setItem('tsd_first_month_shown', '1');
+    } catch(e) { return; }
+    showFirstMonthReview();
+  }
+
+  function showFirstMonthReview() {
+    const active = state.moments.filter(m => !m.archived);
+    const told = active.filter(m => m.toldAt);
+    const people = [...new Set(active.flatMap(m => m.people || []))];
+    const firsts = active.filter(m => m.isFirst);
+    const earned = getEarnedMilestones();
+    const top5 = [...active].sort((a, b) => {
+      const aScore = (a.toldAt ? 10 : 0) + (a.image ? 5 : 0) + (a.isFirst ? 3 : 0);
+      const bScore = (b.toldAt ? 10 : 0) + (b.image ? 5 : 0) + (b.isFirst ? 3 : 0);
+      return bScore - aScore;
+    }).slice(0, 5);
+
+    const title = FIRST_MONTH_REVIEW.titles[0];
+    const intro = FIRST_MONTH_REVIEW.intros[Math.floor(Math.random() * FIRST_MONTH_REVIEW.intros.length)];
+    const closing = FIRST_MONTH_REVIEW.closings[Math.floor(Math.random() * FIRST_MONTH_REVIEW.closings.length)];
+
+    const ov = document.getElementById('upgrade-overlay');
+    const card = ov.querySelector('.upgrade-card');
+    card.innerHTML = `
+      <div class="first-month-review">
+        <div class="fmr-emoji">🎉</div>
+        <div class="fmr-label">已陪你 30 天</div>
+        <div class="fmr-title">${escapeHtml(title)}</div>
+        <div class="fmr-intro">${escapeHtml(intro)}</div>
+        <div class="fmr-stats">
+          <div class="fmr-stat"><span class="fmr-num">${active.length}</span><span class="fmr-lbl">瞬间</span></div>
+          <div class="fmr-stat"><span class="fmr-num">${told.length}</span><span class="fmr-lbl">故事</span></div>
+          <div class="fmr-stat"><span class="fmr-num">${people.length}</span><span class="fmr-lbl">人物</span></div>
+          <div class="fmr-stat"><span class="fmr-num">${firsts.length}</span><span class="fmr-lbl">第一次</span></div>
+        </div>
+        <div class="fmr-highlights">
+          <div class="fmr-hl-label">你最鲜明的几个</div>
+          ${top5.map(m => {
+            const mood = MOODS[m.mood];
+            return `<div class="fmr-hl-item">${mood.emoji} ${escapeHtml(m.text.slice(0, 30))}<span class="fmr-hl-date">${fmtDate(m.date)}</span></div>`;
+          }).join('')}
+        </div>
+        <div class="fmr-closing">${escapeHtml(closing)}</div>
+        <button class="upgrade-btn" id="fmr-share">📸 生成可分享的长图</button>
+        <button class="upgrade-btn" id="fmr-close" style="background:var(--bg-warm);color:var(--ink-soft);margin-top:8px">回头看看就好</button>
+      </div>
+    `;
+    ov.classList.add('show');
+
+    card.querySelector('#fmr-close').addEventListener('click', () => ov.classList.remove('show'));
+    card.querySelector('#fmr-share').addEventListener('click', () => {
+      generateFirstMonthCanvas(active, told, people, firsts, earned, top5, title, intro, closing);
+    });
+  }
+
+  function generateFirstMonthCanvas(active, told, people, firsts, earned, top5, title, intro, closing) {
+    const canvas = document.createElement('canvas');
+    const W = 1080, H = 2200;
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // 背景
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#faf6ef'); bg.addColorStop(0.5, '#f5efe0'); bg.addColorStop(1, '#ebe2c8');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    // 装饰圆
+    ctx.fillStyle = 'rgba(200,135,60,0.04)';
+    ctx.beginPath(); ctx.arc(W*0.8, 200, 300, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(W*0.2, H*0.7, 250, 0, Math.PI*2); ctx.fill();
+
+    // 品牌带
+    ctx.fillStyle = '#c8873c';
+    ctx.font = '600 36px "Noto Serif SC", serif';
+    ctx.fillText('TSD · Time Slow Down', 80, 100);
+    ctx.fillStyle = '#8a5a1f';
+    ctx.font = '22px "Noto Serif SC", serif';
+    ctx.fillText('让走过的时间，长成你的人生。', 80, 138);
+    drawLine(ctx, 80, 180, W - 80, '#e8c89a');
+
+    // 标题
+    let y = 300;
+    ctx.fillStyle = '#1f1c19';
+    ctx.font = '700 80px "Noto Serif SC", serif';
+    ctx.fillText(title, 80, y);
+
+    // 引言
+    y += 80;
+    ctx.fillStyle = '#8a5a1f';
+    ctx.font = 'italic 30px "Noto Serif SC", serif';
+    wrapText(ctx, intro, 80, y, W - 160, 50);
+
+    // 数据统计
+    y += 200;
+    const stats = [
+      { num: active.length, label: '个瞬间' },
+      { num: told.length, label: '个故事' },
+      { num: people.length, label: '个人物' },
+      { num: firsts.length, label: '个第一次' },
+      { num: earned.length, label: '枚印记' },
+    ];
+    ctx.fillStyle = '#b07a4a';
+    ctx.font = '500 22px "Noto Sans SC", sans-serif';
+    ctx.fillText('30 天的数据', 80, y);
+    drawLine(ctx, 80, y + 14, W - 80, '#ece3d2');
+    y += 60;
+    stats.forEach((s, i) => {
+      const col = i % 3;
+      const row = Math.floor(i / 3);
+      const x = 80 + col * 320;
+      const sy = y + row * 120;
+      ctx.fillStyle = '#c8873c';
+      ctx.font = '700 56px "Noto Serif SC", serif';
+      ctx.fillText(String(s.num), x, sy);
+      ctx.fillStyle = '#a8a094';
+      ctx.font = '24px "Noto Sans SC", sans-serif';
+      ctx.fillText(s.label, x + ctx.measureText(String(s.num)).width + 12, sy - 8);
+    });
+
+    // 精选瞬间
+    y += 260;
+    ctx.fillStyle = '#b07a4a';
+    ctx.font = '500 22px "Noto Sans SC", sans-serif';
+    ctx.fillText('最鲜明的几个', 80, y);
+    drawLine(ctx, 80, y + 14, W - 80, '#ece3d2');
+    y += 60;
+    top5.forEach((m, i) => {
+      const mood = MOODS[m.mood];
+      ctx.fillStyle = '#1f1c19';
+      ctx.font = '32px "Noto Serif SC", serif';
+      wrapText(ctx, mood.emoji + ' ' + m.text.slice(0, 28), 80, y + i * 80, W - 260, 40);
+      ctx.fillStyle = '#a8a094';
+      ctx.font = '20px "Noto Sans SC", sans-serif';
+      ctx.fillText(fmtDate(m.date), 80, y + i * 80 + 30);
+    });
+
+    // 简笔旷野
+    y += top5.length * 80 + 40;
+    drawMiniMeadow(ctx, 80, y, W - 160, 100);
+
+    // 结尾
+    y += 160;
+    ctx.fillStyle = '#8a5a1f';
+    ctx.font = 'italic 28px "Noto Serif SC", serif';
+    wrapText(ctx, closing, 80, y, W - 160, 45);
+
+    // 底部品牌
+    y = H - 140;
+    drawLine(ctx, 80, y, W - 80, '#e8c89a');
+    ctx.fillStyle = '#a8a094';
+    ctx.font = '22px "Noto Sans SC", sans-serif';
+    ctx.fillText('— TSD · 让走过的时间，长成你的人生 —', W/2 - 180, y + 50);
+    ctx.fillStyle = '#c8873c';
+    ctx.font = '20px "Noto Sans SC", sans-serif';
+    ctx.fillText('raingodprc.github.io/TimeSlowDown-demo', W/2 - 150, y + 85);
+
+    downloadCanvas(canvas, `tsd-first-month-${todayStr()}.png`);
+    showToast('首月回顾长图已生成 · 可分享朋友圈');
   }
 
 
@@ -3776,6 +3947,11 @@ ${素材}
       const sp = document.getElementById('splash');
       if (sp) sp.remove();
     }, 1800);
+
+    // v3.37 首月回顾检测（用满 30 天时惊喜弹出）
+    if (state.mode === 'empty') {
+      setTimeout(checkFirstMonthReview, 2500);
+    }
 
     // v3.25 原生通知注册（Capacitor 环境下，用户已不关闭扫描时）
     if (isNative && CapacitorLN && state.mode === 'empty') {

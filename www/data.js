@@ -507,7 +507,32 @@ const WELCOME_MILESTONES = {
   30: '一个月了。你已经不像一个月前那样觉得时间飞快了——因为你留住了。',
 };
 
-// v3.33 意外关联模板（跨时间连接）
+// v3.37 首月回顾（30 天触发的惊喜 + 社交货币）
+const FIRST_MONTH_REVIEW = {
+  triggerDays: 30,  // 用满 30 天触发
+  titles: [
+    '你的第一个月',
+    '30 天，你留住了这些',
+    '一个月前，你开始了',
+  ],
+  intros: [
+    '30 天前你留下第一个瞬间。现在回头看，这些就是你这一个月真正活过的证据。',
+    '一个月不知不觉过去了。但这次不一样——你留住了其中的一些。',
+    '如果不是 TSD，这 30 天可能像以前一样飞快地消失。但它没有。',
+  ],
+  closings: [
+    '这只是开始。你的旷野会继续生长。',
+    '下一个月，你会有新的故事可以讲。',
+    '回头见。你的瞬间会一直在这里等你。',
+  ],
+};
+
+// v3.37 年度回顾种子（365 天触发，当前只埋数据结构）
+const YEAR_REVIEW_SEED = {
+  triggerDays: 365,
+  status: 'seed',  // 当前只是种子，365 天数据不够时不会触发
+  titles: ['你的一年'],
+};
 const UNEXPECTED_CONNECTIONS = [
   '你 {days} 天前也留过一个和 {people} 有关的瞬间。',
   '{days} 天前你在 {location} 也留过一个瞬间。',
@@ -562,4 +587,5 @@ window.__TSD_DATA__ = {
   WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES, COMPOUND_LOOPS,
   DAILY_WORDS, TODAY_DIFFERENCE, TOMORROW_PREVIEW,
   TIME_GREETINGS, PROGRESSIVE_UNLOCK, WELCOME_MILESTONES, UNEXPECTED_CONNECTIONS,
+  FIRST_MONTH_REVIEW, YEAR_REVIEW_SEED,
 };
