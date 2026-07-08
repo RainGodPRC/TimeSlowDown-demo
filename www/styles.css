@@ -3264,3 +3264,25 @@ button:active:not(:disabled) {
   font-size: 13px;
   cursor: pointer;
 }
+
+/* v3.31 人生印记（区别于基础印记）*/
+.milestone-popup.milestone-life .milestone-glow {
+  background: radial-gradient(circle, rgba(217, 122, 133, 0.2), transparent 70%);
+}
+.milestone-popup.milestone-life .milestone-emoji {
+  filter: drop-shadow(0 0 12px rgba(217, 122, 133, 0.4));
+}
+.milestone-popup.milestone-life .milestone-label {
+  color: var(--bloom);
+}
+.milestone-prototype {
+  font-size: 11px;
+  color: var(--ink-faint);
+  font-style: italic;
+  margin-top: 8px;
+  padding: 4px 10px;
+  background: var(--bg-warm);
+  border-radius: 10px;
+  display: inline-block;
+  position: relative;
+}

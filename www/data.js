@@ -335,12 +335,14 @@ const SEASON_RITUAL = {
 // 不显示锁定清单；末尾永远有"雾中印记"；只在达成时惊喜出现
 // ============================================================
 const LIFE_MILESTONES = [
+  // === 基础印记（产品能力里程碑）===
   {
     id: 'first-moment',
     emoji: '🌱',
     title: '你开始了',
     desc: '你留住了第一个瞬间。这是旷野里的第一根草。',
-    check: (state) => state.moments.length >= 1,
+    check: (state) => state.moments.filter(m=>!m.archived).length >= 1,
+    type: 'basic',
   },
   {
     id: 'first-photo',
@@ -348,6 +350,7 @@ const LIFE_MILESTONES = [
     title: '留住了光影',
     desc: '你 Mark 了第一张照片。它不只是图像——它是时间的锚。',
     check: (state) => state.moments.some(m => m.image),
+    type: 'basic',
   },
   {
     id: 'first-tell',
@@ -355,6 +358,7 @@ const LIFE_MILESTONES = [
     title: '说出了为什么',
     desc: '你第一次讲了"为什么这一刻重要"。这就是讲述的开始。',
     check: (state) => state.moments.some(m => m.why && m.why.length > 0),
+    type: 'basic',
   },
   {
     id: 'first-first',
@@ -362,13 +366,15 @@ const LIFE_MILESTONES = [
     title: '记住了第一次',
     desc: '一个"第一次"被你留住——它是新枝。',
     check: (state) => state.moments.some(m => m.isFirst),
+    type: 'basic',
   },
   {
     id: 'first-chapter',
     emoji: '📖',
     title: '编出了本周故事',
     desc: '你亲自挑了瞬间、起了名字，编出了第一篇周章节。',
-    check: (state) => Object.keys(window.__TSD_DATA__.WEEK_CHAPTERS).length > 3,
+    check: (state) => Object.keys(window.__TSD_DATA__.WEEK_CHAPTERS).some(k => k >= '2026-W27'),
+    type: 'basic',
   },
   {
     id: 'first-people',
@@ -376,6 +382,53 @@ const LIFE_MILESTONES = [
     title: '让一个人出现了',
     desc: '你 Mark 了一个和"谁"有关的瞬间。关系是花。',
     check: (state) => state.moments.some(m => m.people && m.people.length > 0),
+    type: 'basic',
+  },
+  // === 人生印记（由经历触发，借鉴 Codex 两层结构）===
+  {
+    id: 'life-return',
+    emoji: '🏠',
+    title: '归来',
+    desc: '你记录了一个"回到某处"的瞬间——归来是人生最深的感受之一。',
+    check: (state) => state.moments.some(m => /回|归|到家|回来/.test(m.text) || (m.location && /家|故乡|老家/.test(m.location))),
+    type: 'life',
+    prototype: '归来与归属',
+  },
+  {
+    id: 'life-reunion',
+    emoji: '🤝',
+    title: '重逢',
+    desc: '你记录了一个与故人重逢的瞬间。',
+    check: (state) => state.moments.some(m => /重逢|老友|好久不见|多年/.test(m.text)),
+    type: 'life',
+    prototype: '相逢与重逢',
+  },
+  {
+    id: 'life-creation',
+    emoji: '✨',
+    title: '亲手创造',
+    desc: '你留下了"第一次做某事"的瞬间——创造让你的人生有了新形状。',
+    check: (state) => state.moments.filter(m => m.isFirst).length >= 3,
+    type: 'life',
+    prototype: '亲手创造并留下',
+  },
+  {
+    id: 'life-quiet',
+    emoji: '🍵',
+    title: '人间小满',
+    desc: '你记录了一个平淡但温暖的日常——人间小满是最容易被时间吞掉的。',
+    check: (state) => state.moments.filter(m => m.weather === 'plain' || m.mood === 'warm').length >= 5,
+    type: 'life',
+    prototype: '人间小满',
+  },
+  {
+    id: 'life-connection',
+    emoji: '💗',
+    title: '被看见',
+    desc: '你记录了一个关于"被理解/被记住"的瞬间。',
+    check: (state) => state.moments.some(m => /记得|记住|懂我|理解|想到/.test(m.text) || (m.why && /记得|记住|想念|想到/.test(m.why))),
+    type: 'life',
+    prototype: '被爱与被看见',
   },
   // 永远的雾中印记
   {
@@ -383,10 +436,35 @@ const LIFE_MILESTONES = [
     emoji: '🌫️',
     title: '雾中印记',
     desc: '下一枚仍在生活的雾里。',
-    check: () => false,  // 永远不达成
+    check: () => false,
     isFog: true,
   },
 ];
+
+// v3.31 复利回路文案（借鉴 Codex 四回路，ZCode 具体化）
+const COMPOUND_LOOPS = {
+  perMark: [
+    '留住了。这一刻不会消失了。',
+    '又一个瞬间被你留住了。',
+    '你的旷野在生长。',
+    '它会在你回头看时等着你。',
+    '这一刻，没有被时间吞掉。',
+  ],
+  perChapter: [
+    '这一周没有消失。它有了名字。',
+    '你亲自讲出了这一周的故事。',
+    '七个日子，被你编成了一个故事。',
+  ],
+  perMonth: [
+    '这个月有了名字。它不再只是日历上的数字。',
+    '你看见了这一个月的主线。',
+  ],
+  perSeason: [
+    '这三个月没有被时间吞掉。',
+    '九十天，你讲得出其中的鲜明瞬间。',
+    '回头看，它有边界，有名字，可以讲出来。',
+  ],
+};
 
 const NIGHT_SCAN = {
   // 讲述价值评分规则（高分在前）
@@ -410,5 +488,5 @@ const NIGHT_SCAN = {
 // 暴露
 window.__TSD_DATA__ = {
   USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, PLAIN_MODE, ONBOARDING, NIGHT_SCAN,
-  WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES,
+  WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES, COMPOUND_LOOPS,
 };

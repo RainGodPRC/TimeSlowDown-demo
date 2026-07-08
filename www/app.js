@@ -21,7 +21,7 @@ if (isNative) {
 }
 
 (() => {
-  const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, ONBOARDING, NIGHT_SCAN, WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES } = window.__TSD_DATA__;
+  const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, ONBOARDING, NIGHT_SCAN, WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES, COMPOUND_LOOPS } = window.__TSD_DATA__;
 
   // ============ 数据模式 ============
   // 'onboarding' 首启动 | 'empty' 空状态（用户自己用）| 'demo' 示例数据（陈雨）
@@ -2693,21 +2693,13 @@ ${素材}
     state.moments.unshift(newM);
     saveMoments();
 
-    // v3.29 #8：仪式感反馈（不再静默——用户反馈说"没有满足感"）
+    // v3.31 复利回路文案（借鉴 Codex 四回路）
     const done = document.getElementById('compose-done');
     const doneIcon = done.querySelector('.done-icon');
     const doneText = done.querySelector('.done-text');
-
-    // 统计总 Mark 数，给进度感
     const totalMarks = state.moments.filter(m => !m.archived).length;
-    const phrases = [
-      '留住了。这一刻不会消失了。',
-      '又一个瞬间被你留住了。',
-      `${totalMarks} 个瞬间——你的旷野在生长。`,
-      '它会在你回头看时等着你。',
-      '这一刻，没有被时间吞掉。',
-    ];
-    const phrase = phrases[Math.min(totalMarks - 1, phrases.length - 1)] || phrases[phrases.length - 1];
+    const loops = COMPOUND_LOOPS.perMark;
+    const phrase = loops[Math.min(totalMarks - 1, loops.length - 1)] || loops[loops.length - 1];
 
     // 随机换 icon 给新鲜感
     const icons = ['✓', '🌿', '🌸', '🍃', '🌅'];
@@ -2801,8 +2793,16 @@ ${素材}
       });
     });
 
-    // 朴素切换
-    ['plain-toggle-tell', 'plain-toggle-meadow', 'plain-toggle-archive'].forEach(id => {
+    // v3.31 讲述页右上角 → 人生格子
+    const tgBtn = document.getElementById('tell-grid-btn');
+    if (tgBtn) tgBtn.addEventListener('click', () => {
+      document.querySelector('.lens-pill[data-lens="time"]')?.click();
+      document.querySelector('.zoom-pill[data-zoom="life"]')?.click();
+      document.querySelector('.tab[data-tab="meadow"]')?.click();
+    });
+
+    // 朴素切换（仅旷野+原料页）
+    ['plain-toggle-meadow', 'plain-toggle-archive'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.addEventListener('click', togglePlainMode);
     });
@@ -3261,13 +3261,15 @@ ${素材}
   function showMilestonePopup(ms) {
     const ov = document.getElementById('upgrade-overlay');
     const card = ov.querySelector('.upgrade-card');
+    const isLife = ms.type === 'life';
     card.innerHTML = `
-      <div class="milestone-popup">
+      <div class="milestone-popup ${isLife ? 'milestone-life' : ''}">
         <div class="milestone-glow"></div>
         <div class="milestone-emoji">${ms.emoji}</div>
-        <div class="milestone-label">一枚人生印记</div>
+        <div class="milestone-label">${isLife ? '✦ 一枚人生印记' : '一枚印记'}</div>
         <div class="milestone-title">${escapeHtml(ms.title)}</div>
         <div class="milestone-desc">${escapeHtml(ms.desc)}</div>
+        ${ms.prototype ? `<div class="milestone-prototype">${escapeHtml(ms.prototype)}</div>` : ''}
         <button class="upgrade-btn" id="ms-close">收下</button>
         <p class="milestone-hint">它已嵌入你的旷野。<br/>下一枚仍在生活的雾里。</p>
       </div>
