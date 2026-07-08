@@ -17,7 +17,7 @@
   <meta name="apple-mobile-web-app-title" content="TSD" />
   <meta name="theme-color" content="#c8873c" />
   <meta name="description" content="让走过的时间，长成你的人生。" />
-  <link rel="stylesheet" href="styles.css?v=51" />
+  <link rel="stylesheet" href="styles.css?v=52" />
 </head>
 <body>
 
@@ -156,6 +156,15 @@
             <div class="compose-prompt" id="compose-prompt">这一刻，有什么你想留住的？</div>
             <div class="compose-image-slot" id="compose-image-slot">
               <span class="image-placeholder">＋ 留一张照片（5 秒就够）</span>
+            </div>
+            <div class="compose-section-label">说一句 <span class="label-hint">（🎤 按住录音，松开保存）</span></div>
+            <div class="voice-mark-area" id="voice-mark-area">
+              <button class="voice-record-btn" id="voice-record-btn" title="按住录音">🎤</button>
+              <div class="voice-status" id="voice-status">按住说话 · 最多 30 秒</div>
+              <div class="voice-playback" id="voice-playback" style="display:none">
+                <button class="voice-play-btn" id="voice-play-btn">▶ 播放</button>
+                <button class="voice-delete-btn" id="voice-delete-btn">✕ 删除</button>
+              </div>
             </div>
             <div class="compose-section-label">心情</div>
             <div class="compose-mood-row" id="compose-mood-row"></div>

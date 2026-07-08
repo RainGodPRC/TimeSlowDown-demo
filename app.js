@@ -2662,6 +2662,7 @@ ${素材}
               <span>${mood.emoji} ${mood.label}</span>
               ${weatherEmoji ? `<span>${weatherEmoji}</span>` : ''}
               ${levelBadge}
+              ${m.voice ? `<button class="voice-play-inline" data-voice="${m.id}">▶ 语音</button>` : ''}
               ${m.location && m.location !== '—' ? `<span>· ${escapeHtml(m.location)}</span>` : ''}
               ${m.people && m.people.length ? `<span>· ${m.people.map(escapeHtml).join('、')}</span>` : ''}
               ${m.isFirst ? `<span class="first-badge">第一次</span>` : ''}
@@ -2682,6 +2683,13 @@ ${素材}
     });
     list.querySelectorAll('[data-tuck]').forEach(btn => {
       btn.addEventListener('click', () => archiveMoment(btn.dataset.tuck));
+    });
+    // v3.36 语音播放
+    list.querySelectorAll('[data-voice]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const m = getMoment(btn.dataset.voice);
+        if (m && m.voice) { new Audio(m.voice).play(); }
+      });
     });
   }
 
@@ -2957,6 +2965,11 @@ ${素材}
     document.querySelector('.weather-chip[data-weather="plain"]')?.classList.add('active');
     state.selectedMood = null;
     state.selectedWeather = 'plain';
+    state.voiceData = null;  // v3.36 重置语音
+    const vp = document.getElementById('voice-playback');
+    if (vp) vp.style.display = 'none';
+    const vs = document.getElementById('voice-status');
+    if (vs) { vs.textContent = '按住说话 · 最多 30 秒'; vs.style.color = ''; }
   }
 
   // v3.16 图片压缩（canvas resize + JPEG quality）
@@ -2974,6 +2987,96 @@ ${素材}
       };
       img.onerror = () => resolve(dataUrl);  // 压缩失败用原图
       img.src = dataUrl;
+    });
+  }
+
+  // v3.36 语音 Mark（MediaRecorder + base64 存储）
+  let voiceMediaRecorder = null;
+  let voiceChunks = [];
+  let voiceTimer = null;
+  let voiceSeconds = 0;
+
+  function setupVoiceMark() {
+    const btn = document.getElementById('voice-record-btn');
+    const status = document.getElementById('voice-status');
+    const playback = document.getElementById('voice-playback');
+    if (!btn) return;
+
+    // 检查浏览器支持
+    if (!navigator.mediaDevices || !window.MediaRecorder) {
+      status.textContent = '此设备不支持录音';
+      btn.style.opacity = '0.4';
+      btn.style.pointerEvents = 'none';
+      return;
+    }
+
+    let isRecording = false;
+
+    // 按住开始 / 松开停止
+    const startRec = async () => {
+      if (isRecording) return;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        voiceChunks = [];
+        voiceMediaRecorder = new MediaRecorder(stream);
+        voiceMediaRecorder.ondataavailable = e => { if (e.data.size > 0) voiceChunks.push(e.data); };
+        voiceMediaRecorder.onstop = () => {
+          const blob = new Blob(voiceChunks, { type: 'audio/webm' });
+          const reader = new FileReader();
+          reader.onload = () => {
+            state.voiceData = reader.result;  // base64 data URL
+            playback.style.display = 'flex';
+            status.textContent = '录音完成 ✓';
+            status.style.color = 'var(--moss-deep)';
+          };
+          reader.readAsDataURL(blob);
+          stream.getTracks().forEach(t => t.stop());
+        };
+        voiceMediaRecorder.start();
+        isRecording = true;
+        btn.classList.add('recording');
+        voiceSeconds = 0;
+        status.textContent = '录音中… 0s / 30s';
+        status.style.color = 'var(--amber-deep)';
+        voiceTimer = setInterval(() => {
+          voiceSeconds++;
+          status.textContent = `录音中… ${voiceSeconds}s / 30s`;
+          if (voiceSeconds >= 30) stopRec();
+        }, 1000);
+      } catch(e) {
+        status.textContent = '需要麦克风权限才能录音';
+      }
+    };
+
+    const stopRec = () => {
+      if (!isRecording) return;
+      isRecording = false;
+      btn.classList.remove('recording');
+      clearInterval(voiceTimer);
+      if (voiceMediaRecorder && voiceMediaRecorder.state !== 'inactive') voiceMediaRecorder.stop();
+    };
+
+    // 触摸/鼠标事件
+    btn.addEventListener('mousedown', startRec);
+    btn.addEventListener('touchstart', e => { e.preventDefault(); startRec(); });
+    btn.addEventListener('mouseup', stopRec);
+    btn.addEventListener('touchend', stopRec);
+    btn.addEventListener('mouseleave', stopRec);
+
+    // 播放
+    document.getElementById('voice-play-btn')?.addEventListener('click', () => {
+      if (state.voiceData) {
+        const audio = new Audio(state.voiceData);
+        audio.play();
+      }
+    });
+
+    // 删除
+    document.getElementById('voice-delete-btn')?.addEventListener('click', () => {
+      state.voiceData = null;
+      playback.style.display = 'none';
+      status.textContent = '按住说话 · 最多 30 秒';
+      status.style.color = '';
     });
   }
 
@@ -3005,6 +3108,7 @@ ${素材}
       people: people ? people.split(/[、,，]/).map(s => s.trim()).filter(Boolean) : [],
       isFirst,
       image: imgSrc,
+      voice: state.voiceData || null,  // v3.36 语音 Mark
       level: 0,
       toldAt: null,
       why: null,
@@ -3279,6 +3383,9 @@ ${素材}
         }
       });
     }
+
+    // v3.36 语音 Mark（Investment 最深层——说出来的比写下来的更"自己的"）
+    setupVoiceMark();
 
     // L1 升级
     document.getElementById('upgrade-close').addEventListener('click', closeUpgrade);
