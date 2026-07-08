@@ -59,11 +59,11 @@ if (isNative) {
     saveMode('demo');
   }
   // 进入空模式（被试真实使用）
-  function enterEmptyMode() {
+  async function enterEmptyMode() {
     state.mode = 'empty';
     state.moments = [];
     saveMode('empty');
-    loadMoments();  // 加载之前存的瞬间
+    await loadMomentsAsync();  // v3.30 异步从 IDB 加载
     saveMoments();
     // v3.18 首次进入 empty mode 提示登记生日
     try {
@@ -73,46 +73,128 @@ if (isNative) {
     } catch(e) {}
   }
 
-  // v3.13/v3.15/v3.27 数据持久化（empty mode 下用户的真实 Mark + 周章节 + 月度命名）
+  // v3.13/v3.15/v3.27/v3.30 数据持久化
+  // v3.30：大数据迁 IndexedDB（防照片 dataURL 撑爆 localStorage 5MB）
+  // 小键值仍用 localStorage（mode/birth/settings/scan state）
+  const IDB_NAME = 'tsd_db';
+  const IDB_VERSION = 1;
+  const IDB_STORE = 'kv';
+
+  function idbOpen() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function idbGet(key) {
+    try {
+      const db = await idbOpen();
+      return new Promise(resolve => {
+        const tx = db.transaction(IDB_STORE, 'readonly');
+        const req = tx.objectStore(IDB_STORE).get(key);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => resolve(null);
+      });
+    } catch(e) { return null; }
+  }
+  async function idbSet(key, value) {
+    try {
+      const db = await idbOpen();
+      return new Promise(resolve => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put(value, key);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+      });
+    } catch(e) { return false; }
+  }
+  async function idbDelete(key) {
+    try {
+      const db = await idbOpen();
+      return new Promise(resolve => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).delete(key);
+        tx.oncomplete = () => resolve(true);
+        tx.onerror = () => resolve(false);
+      });
+    } catch(e) { return false; }
+  }
+
+  // v3.30：saveMoments 改为异步写 IndexedDB（大数据）
   function saveMoments() {
     if (state.mode !== 'empty') return;
+    const userMoments = state.moments.filter(m => m.id.startsWith('new-') || m.id.startsWith('bf-'));
+    const userChapters = {};
+    for (const [k, v] of Object.entries(WEEK_CHAPTERS)) {
+      if (k >= '2026-W27') userChapters[k] = v;
+    }
+    const userMonths = {};
+    for (const [k, v] of Object.entries(MONTH_LANDSCAPES)) {
+      if (v.userNamed) userMonths[k] = v;
+    }
+    // 异步写 IDB（不阻塞 UI）
+    idbSet('moments', userMoments);
+    idbSet('chapters', userChapters);
+    idbSet('months', userMonths);
+    // 同时写 localStorage 作为 fallback（小数据时可用）
     try {
-      const userMoments = state.moments.filter(m => m.id.startsWith('new-') || m.id.startsWith('bf-'));
-      localStorage.setItem('tsd_user_moments', JSON.stringify(userMoments));
-      // 持久化周章节
-      const userChapters = {};
-      for (const [k, v] of Object.entries(WEEK_CHAPTERS)) {
-        if (k >= '2026-W27') userChapters[k] = v;
-      }
       localStorage.setItem('tsd_user_chapters', JSON.stringify(userChapters));
-      // v3.27 修复：持久化用户命名的月度
-      const userMonths = {};
-      for (const [k, v] of Object.entries(MONTH_LANDSCAPES)) {
-        if (v.userNamed) userMonths[k] = v;
-      }
       localStorage.setItem('tsd_user_months', JSON.stringify(userMonths));
-    } catch (e) {}
+    } catch(e) {}
   }
-  function loadMoments() {
+
+  // v3.30：loadMoments 改为异步从 IndexedDB 加载
+  async function loadMomentsAsync() {
     if (state.mode !== 'empty') return;
-    try {
-      const saved = localStorage.getItem('tsd_user_moments');
-      if (saved) {
-        state.moments = JSON.parse(saved);
-      }
-      const savedCh = localStorage.getItem('tsd_user_chapters');
-      if (savedCh) {
-        const userCh = JSON.parse(savedCh);
-        for (const [k, v] of Object.entries(userCh)) WEEK_CHAPTERS[k] = v;
-      }
-      // v3.27 修复：加载用户命名的月度
-      const savedMo = localStorage.getItem('tsd_user_months');
-      if (savedMo) {
-        const userMo = JSON.parse(savedMo);
-        for (const [k, v] of Object.entries(userMo)) MONTH_LANDSCAPES[k] = v;
-      }
-    } catch (e) {}
+    // 先尝试 IDB
+    const savedMoments = await idbGet('moments');
+    if (savedMoments) {
+      state.moments = savedMoments;
+    } else {
+      // 降级：从旧 localStorage 迁移
+      try {
+        const lsMoments = localStorage.getItem('tsd_user_moments');
+        if (lsMoments) {
+          state.moments = JSON.parse(lsMoments);
+          // 迁移到 IDB 后清除 LS
+          idbSet('moments', state.moments);
+          localStorage.removeItem('tsd_user_moments');
+        }
+      } catch(e) {}
+    }
+    const savedChapters = await idbGet('chapters');
+    if (savedChapters) {
+      for (const [k, v] of Object.entries(savedChapters)) WEEK_CHAPTERS[k] = v;
+    } else {
+      try {
+        const lsCh = localStorage.getItem('tsd_user_chapters');
+        if (lsCh) {
+          const userCh = JSON.parse(lsCh);
+          for (const [k, v] of Object.entries(userCh)) WEEK_CHAPTERS[k] = v;
+        }
+      } catch(e) {}
+    }
+    const savedMonths = await idbGet('months');
+    if (savedMonths) {
+      for (const [k, v] of Object.entries(savedMonths)) MONTH_LANDSCAPES[k] = v;
+    } else {
+      try {
+        const lsMo = localStorage.getItem('tsd_user_months');
+        if (lsMo) {
+          const userMo = JSON.parse(lsMo);
+          for (const [k, v] of Object.entries(userMo)) MONTH_LANDSCAPES[k] = v;
+        }
+      } catch(e) {}
+    }
   }
+
+  // 保留旧 loadMoments 同步版作为兼容（空操作，实际加载在 init 里 async）
+  function loadMoments() {}
 
   // ============================================================
   // v3.22 记忆浮现（可变回报钩子）
@@ -2937,6 +3019,8 @@ ${素材}
         localStorage.removeItem('tsd_user_moments');
         localStorage.removeItem('tsd_user_chapters');
         localStorage.removeItem('tsd_user_months');  // v3.27
+        // v3.30：也清 IndexedDB
+        idbDelete('moments'); idbDelete('chapters'); idbDelete('months');
       } catch (e) {}
       location.reload();
     });
@@ -3112,12 +3196,16 @@ ${素材}
     card.querySelector('#ms-collect-close').addEventListener('click', () => ov.classList.remove('show'));
   }
 
-  function init() {
+  async function init() {
     renderComposeMoods();
     bindEvents();
-    // 设计者侧栏"看示例"按钮
     const rdb = document.getElementById('reset-demo-btn');
     if (rdb) rdb.addEventListener('click', () => { enterDemoMode(); switchView('tell'); renderTell(); });
+
+    // v3.30: empty mode 先异步从 IndexedDB 加载数据
+    if (state.mode === 'empty') {
+      await loadMomentsAsync();
+    }
 
     // 首启动按 mode 决定入口
     if (state.mode === 'onboarding') {
