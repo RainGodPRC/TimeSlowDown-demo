@@ -433,6 +433,8 @@ if (isNative) {
     if (name === 'tell') renderTell();
     if (name === 'meadow') renderMeadow();
     if (name === 'archive') renderArchive();
+    // v3.30：每次视图切换后补全 a11y（动态内容）
+    setTimeout(enhanceAccessibility, 50);
   }
 
   // ============================================================
@@ -3110,6 +3112,40 @@ ${素材}
     });
   }
 
+  // v3.30 借鉴 #2：a11y 增强（VoiceOver / 键盘导航）
+  function enhanceAccessibility() {
+    // 所有带 onclick 的非 button/非 input 元素补 role+tabindex+键盘
+    document.querySelectorAll('[onclick], [data-upgrade], [data-edit], [data-tuck], [data-restore], [data-destroy], .setting-row span[id], .tab, .zoom-pill, .lens-pill, .archive-view-pill, .mood-chip, .weather-chip, .night-scan-item, .untold-card, .told-card, .map-pin, .photo-wall-item, .wc-pick-item').forEach(el => {
+      if (el.tagName === 'BUTTON' || el.tagName === 'INPUT' || el.tagName === 'A' || el.tagName === 'TEXTAREA') return;
+      if (!el.getAttribute('role')) el.setAttribute('role', 'button');
+      if (!el.getAttribute('tabindex')) el.setAttribute('tabindex', '0');
+      // 键盘 Enter/Space 触发 click
+      if (!el._tsdA11yBound) {
+        el._tsdA11yBound = true;
+        el.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+        });
+      }
+    });
+    // 图标按钮补 aria-label
+    const ariaLabels = {
+      'bell-btn': '今晚扫描提醒', 'fab': '留住一刻', 'tab-add': '留住一刻',
+      'compose-close': '取消', 'upgrade-close': '关闭', 'info-close': '关闭',
+      'opening-close': '关闭', 'compare-close': '关闭', 'opening-close': '关闭',
+      'plain-toggle-tell': '切换朴素模式', 'plain-toggle-meadow': '切换朴素模式',
+      'plain-toggle-archive': '切换朴素模式', 'grid-back': '返回',
+      'scan-close': '关闭今晚扫描', 'resurface-close': '关闭记忆浮现',
+      'wc-close': '关闭本周章节', 'wc-read-close': '关闭',
+      'edit-close': '关闭编辑', 'arch-close': '关闭', 'birth-skip': '以后再说',
+      'mn-close': '关闭', 'ritual-close': '关闭仪式', 'ritual-close2': '关闭',
+      'ms-close': '收下', 'ms-collect-close': '关闭', 'wipe-close': '关闭',
+    };
+    Object.entries(ariaLabels).forEach(([id, label]) => {
+      const el = document.getElementById(id);
+      if (el && !el.getAttribute('aria-label')) el.setAttribute('aria-label', label);
+    });
+  }
+
   // ============================================================
   // 启动
   // ============================================================
@@ -3201,6 +3237,9 @@ ${素材}
     bindEvents();
     const rdb = document.getElementById('reset-demo-btn');
     if (rdb) rdb.addEventListener('click', () => { enterDemoMode(); switchView('tell'); renderTell(); });
+
+    // v3.30 借鉴 #2：a11y 自动补全（App Store 硬要求）
+    enhanceAccessibility();
 
     // v3.30: empty mode 先异步从 IndexedDB 加载数据
     if (state.mode === 'empty') {
