@@ -3191,7 +3191,7 @@ ${素材}
   // v3.30 借鉴 #2：a11y 增强（VoiceOver / 键盘导航）
   function enhanceAccessibility() {
     // 所有带 onclick 的非 button/非 input 元素补 role+tabindex+键盘
-    document.querySelectorAll('[onclick], [data-upgrade], [data-edit], [data-tuck], [data-restore], [data-destroy], .setting-row span[id], .tab, .zoom-pill, .lens-pill, .archive-view-pill, .mood-chip, .weather-chip, .night-scan-item, .untold-card, .told-card, .map-pin, .photo-wall-item, .wc-pick-item').forEach(el => {
+    document.querySelectorAll('[onclick], [data-edit], [data-tuck], [data-restore], [data-destroy], .setting-row span[id], .tab, .zoom-pill, .lens-pill, .archive-view-pill, .mood-chip, .weather-chip, .night-scan-item, .map-pin, .photo-wall-item, .wc-pick-item').forEach(el => {
       if (el.tagName === 'BUTTON' || el.tagName === 'INPUT' || el.tagName === 'A' || el.tagName === 'TEXTAREA') return;
       if (!el.getAttribute('role')) el.setAttribute('role', 'button');
       if (!el.getAttribute('tabindex')) el.setAttribute('tabindex', '0');

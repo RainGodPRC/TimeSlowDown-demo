@@ -396,8 +396,9 @@ html, body {
   transform: translateX(2px);
 }
 .untold-thumb {
-  width: 44px; height: 44px; border-radius: var(--r-sm);
+  width: 56px; height: 56px; border-radius: var(--r-sm);
   object-fit: cover; flex-shrink: 0;
+  box-shadow: var(--shadow-xs);
 }
 .untold-body { flex: 1; min-width: 0; }
 .untold-text {
