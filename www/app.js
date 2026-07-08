@@ -251,6 +251,8 @@ if (isNative) {
           <div class="resurface-meta">${fmtDate(m.date)}${m.people && m.people.length ? ' · ' + m.people.map(escapeHtml).join('、') : ''}</div>
         </div>
         <p class="resurface-hint">看到这个瞬间，你还记得当时的感受吗？</p>
+        <input class="resurface-input" id="resurface-input" placeholder="现在再看，我想说……（可选）" maxlength="60" />
+        <button class="resurface-save-btn" id="resurface-save">补充感受</button>
       </div>
     `;
   }
@@ -968,6 +970,26 @@ if (isNative) {
     if (resurfaceClose) resurfaceClose.addEventListener('click', () => {
       const c = document.getElementById('resurface-card');
       if (c) { c.style.opacity = '0'; c.style.transform = 'scale(0.95)'; setTimeout(() => c.remove(), 300); }
+    });
+    // v3.30 借鉴 Claude Code：记忆浮现"现在再看"输入
+    const resurfaceSave = document.getElementById('resurface-save');
+    if (resurfaceSave) resurfaceSave.addEventListener('click', () => {
+      const input = document.getElementById('resurface-input');
+      const txt = input?.value.trim();
+      if (!txt) { showToast('什么都没写也没关系'); return; }
+      // 找到该瞬间，追加 revisit 感受（时间层叠）
+      const r = getMemoryResurface();
+      if (r) {
+        const m = getMoment(r.moment.id);
+        if (m) {
+          if (!m.revisits) m.revisits = [];
+          m.revisits.push({ at: todayStr(), text: txt });
+          saveMoments();
+          showToast('感受已追加 · 这一刻变得更厚了');
+        }
+      }
+      const c = document.getElementById('resurface-card');
+      if (c) { c.style.opacity = '0'; setTimeout(() => c.remove(), 300); }
     });
     scroll.querySelectorAll('.night-scan-item').forEach(item => {
       item.addEventListener('click', () => openUpgrade(item.dataset.upgrade));
@@ -2946,19 +2968,31 @@ ${素材}
   // v3.8：合规 - 数据导出 + 关于/隐私/反馈 overlay
   // ============================================================
   async function exportMyData() {
+    // v3.30 借鉴 #3：版本化记忆包 + checksum
+    const moments = state.moments.filter(m => !m.archived);
     const data = {
+      schema: 'tsd-memory-package',
+      pkgVersion: 1,
       exportedAt: new Date().toISOString(),
-      appVersion: 'TSD v3.25',
-      userMoments: state.moments,
+      appVersion: 'TSD v3.30',
+      counts: {
+        moments: moments.length,
+        chapters: Object.keys(WEEK_CHAPTERS).length,
+        months: Object.keys(MONTH_LANDSCAPES).filter(k => MONTH_LANDSCAPES[k].userNamed).length,
+      },
+      moments,
       weekChapters: WEEK_CHAPTERS,
       monthLandscapes: MONTH_LANDSCAPES,
     };
     const jsonStr = JSON.stringify(data, null, 2);
+    // 简单 checksum（字符数 + 首尾哈希）
+    data.checksum = jsonStr.length + ':' + (jsonStr.slice(0, 8) + jsonStr.slice(-8)).replace(/[^a-zA-Z0-9]/g, '').slice(0, 16);
+    const finalStr = JSON.stringify(data, null, 2);
 
     if (isNative && CapacitorFS && CapacitorShare) {
       // 原生：Filesystem + Share
       try {
-        const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
+        const base64 = btoa(unescape(encodeURIComponent(finalStr)));
         const result = await CapacitorFS.writeFile({
           path: `tsd-export-${todayStr()}.json`,
           data: base64,
@@ -2975,7 +3009,7 @@ ${素材}
     }
 
     // Web：Blob + <a download>
-    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const blob = new Blob([finalStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -3005,16 +3039,36 @@ ${素材}
           <li>onboarding 状态（下次会重新走引导）</li>
         </ul>
         <p style="font-size:13px;line-height:1.7;color:var(--ink-soft);margin-bottom:18px"><b>不可恢复</b>。建议先点\"导出\"做一份备份。</p>
+        <p style="font-size:12px;color:var(--ink-faint);margin-bottom:10px">输入"我确定"来确认：</p>
+        <input class="wc-title-input" id="wipe-confirm-input" placeholder="我确定" style="font-family:var(--font-sans);font-size:14px;margin-bottom:14px;text-align:center" />
         <div style="display:flex;gap:8px">
           <button class="upgrade-btn" id="wipe-cancel" style="background:var(--bg-warm);color:var(--ink-soft);flex:1">取消</button>
-          <button class="upgrade-btn" id="wipe-confirm" style="background:#c54455;flex:1">确认清除</button>
+          <button class="upgrade-btn" id="wipe-confirm" style="background:#c54455;flex:1" disabled>确认清除</button>
         </div>
       </div>
     `;
     ov.classList.add('show');
     card.querySelector('#wipe-close').addEventListener('click', () => ov.classList.remove('show'));
     card.querySelector('#wipe-cancel').addEventListener('click', () => ov.classList.remove('show'));
-    card.querySelector('#wipe-confirm').addEventListener('click', () => {
+
+    // v3.30 借鉴 #4：输入确认 + 墓碑快照 + 会话内撤销
+    const confirmInput = card.querySelector('#wipe-confirm-input');
+    const confirmBtn = card.querySelector('#wipe-confirm');
+    confirmInput.addEventListener('input', () => {
+      confirmBtn.disabled = confirmInput.value.trim() !== '我确定';
+    });
+    confirmBtn.addEventListener('click', () => {
+      // 墓碑快照（会话内可撤销）
+      try {
+        const tombstone = {
+          moments: state.moments,
+          chapters: Object.fromEntries(Object.entries(WEEK_CHAPTERS).filter(([k]) => k >= '2026-W27')),
+          months: Object.fromEntries(Object.entries(MONTH_LANDSCAPES).filter(([_,v]) => v.userNamed)),
+          timestamp: Date.now(),
+        };
+        sessionStorage.setItem('tsd_tombstone', JSON.stringify(tombstone));
+      } catch(e) {}
+
       try {
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem('tsd_feedback');
@@ -3024,7 +3078,29 @@ ${素材}
         // v3.30：也清 IndexedDB
         idbDelete('moments'); idbDelete('chapters'); idbDelete('months');
       } catch (e) {}
-      location.reload();
+      // v3.30：显示撤销提示（会话内可恢复）
+      ov.classList.remove('show');
+      showToast('已清除 · 本会话内可点这里撤销', 8000);
+      const toast = document.getElementById('toast');
+      if (toast) {
+        toast.style.cursor = 'pointer';
+        toast.onclick = () => {
+          try {
+            const ts = sessionStorage.getItem('tsd_tombstone');
+            if (ts) {
+              const data = JSON.parse(ts);
+              idbSet('moments', data.moments);
+              idbSet('chapters', data.chapters);
+              idbSet('months', data.months);
+              sessionStorage.removeItem('tsd_tombstone');
+              localStorage.setItem(STORAGE_KEY, 'empty');
+              showToast('已恢复 · 数据回来了');
+              setTimeout(() => location.reload(), 1000);
+            }
+          } catch(e) { showToast('恢复失败 · 数据已清除'); }
+        };
+      }
+      setTimeout(() => { if (!sessionStorage.getItem('tsd_tombstone')) return; sessionStorage.removeItem('tsd_tombstone'); location.reload(); }, 8000);
     });
   }
 

@@ -3237,3 +3237,29 @@ button:active:not(:disabled) {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* v3.30 记忆浮现输入 */
+.resurface-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.8);
+  border-radius: var(--r-sm);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--ink);
+  margin-bottom: 8px;
+  outline: none;
+}
+.resurface-input:focus { border-color: var(--amber); }
+.resurface-save-btn {
+  display: block;
+  width: 100%;
+  background: var(--amber);
+  color: #fff;
+  border: none;
+  padding: 8px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  cursor: pointer;
+}
