@@ -442,7 +442,43 @@ const LIFE_MILESTONES = [
 ];
 
 // v3.31 复利回路文案（借鉴 Codex 四回路，ZCode 具体化）
-const COMPOUND_LOOPS = {
+// v3.32 每日一词（可变回报：每天打开看到不同的温柔句子）
+const DAILY_WORDS = [
+  '日子会走，但不必都走丢。',
+  '你不需要记住每一天，只需要记住某一天。',
+  '时间不是敌人，遗忘才是。',
+  '一个瞬间被你看见，就不会完全消失。',
+  '你留住的不是照片，是那一刻你为什么停下来。',
+  '生活不需要表演，但需要被区分。',
+  '回头看的时候，你会感谢现在留住的这一刻。',
+  '不是每一天都重要，但重要的一天不该悄悄过去。',
+  '记忆是唯一不会贬值的东西。',
+  '你活过的每一周，都值得被看见。',
+  '平淡不是空白——它是你站立的地面。',
+  '有些事不记下来，就像没发生过。',
+  '时间飞快，但你可以让某些瞬间飞慢。',
+  '你不需要活得很精彩，只需要知道自己在活。',
+  '今天的你，是未来的你回望时想看到的样子。',
+];
+
+// v3.32 "今天的不同"提示语（检测今天 vs 昨天的变化）
+const TODAY_DIFFERENCE = {
+  newMoment: '今天多了一个新的瞬间。',
+  newPhoto: '今天留了一张照片。',
+  newPeople: '今天和 {people} 有关。',
+  newFirst: '今天有了一个"第一次"。',
+  newChapter: '今天你编了一个本周故事。',
+  quiet: '今天还没有留下什么。也没关系。',
+};
+
+// v3.32 "明日预告"提示（Hook 触发器：制造好奇而非焦虑）
+const TOMORROW_PREVIEW = [
+  '明天，TSD 会帮你看看这周的故事。',
+  '明天，也许会有一个旧瞬间浮现。',
+  '明天，你的人生格子又会多一格。',
+  '明天的你，会感谢今天留住的这一刻。',
+  '明天见。你的旷野会等着你。',
+];
   perMark: [
     '留住了。这一刻不会消失了。',
     '又一个瞬间被你留住了。',
@@ -489,4 +525,5 @@ const NIGHT_SCAN = {
 window.__TSD_DATA__ = {
   USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, PLAIN_MODE, ONBOARDING, NIGHT_SCAN,
   WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES, COMPOUND_LOOPS,
+  DAILY_WORDS, TODAY_DIFFERENCE, TOMORROW_PREVIEW,
 };

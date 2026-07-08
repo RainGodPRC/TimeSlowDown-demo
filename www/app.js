@@ -21,7 +21,7 @@ if (isNative) {
 }
 
 (() => {
-  const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, ONBOARDING, NIGHT_SCAN, WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES, COMPOUND_LOOPS } = window.__TSD_DATA__;
+  const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, ONBOARDING, NIGHT_SCAN, WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES, COMPOUND_LOOPS, DAILY_WORDS, TODAY_DIFFERENCE, TOMORROW_PREVIEW } = window.__TSD_DATA__;
 
   // ============ 数据模式 ============
   // 'onboarding' 首启动 | 'empty' 空状态（用户自己用）| 'demo' 示例数据（陈雨）
@@ -755,6 +755,41 @@ if (isNative) {
     const told = weekMoments.filter(m => m.toldAt);
     const untold = weekMoments.filter(m => !m.toldAt);
 
+    // v3.32 锚点 ②：每日一词（可变回报——每天打开看到不同的温柔句子）
+    const dayOfYear = Math.floor((TODAY - new Date(TODAY.getFullYear(), 0, 0)) / 86400000);
+    const dailyWord = DAILY_WORDS[dayOfYear % DAILY_WORDS.length];
+    html.push(`<div class="daily-word-card">${escapeHtml(dailyWord)}</div>`);
+
+    // v3.32 锚点 ③："今天的不同"（检测今天 vs 昨天的变化）
+    const todayMoments = state.moments.filter(m => m.date === todayStr() && !m.archived);
+    if (todayMoments.length > 0) {
+      const hasPhoto = todayMoments.some(m => m.image);
+      const hasFirst = todayMoments.some(m => m.isFirst);
+      const people = [...new Set(todayMoments.flatMap(m => m.people || []))];
+      let diffText;
+      if (hasFirst) diffText = TODAY_DIFFERENCE.newFirst;
+      else if (people.length > 0) diffText = TODAY_DIFFERENCE.newPeople.replace('{people}', people.map(escapeHtml).join('、'));
+      else if (hasPhoto) diffText = TODAY_DIFFERENCE.newPhoto;
+      else diffText = TODAY_DIFFERENCE.newMoment;
+      html.push(`<div class="today-diff-card">✨ ${escapeHtml(diffText)}</div>`);
+    }
+
+    // v3.32 锚点 ④：进度数字（胜任感——"我做了这么多"）
+    const totalActive = state.moments.filter(m => !m.archived);
+    const totalMarks = totalActive.length;
+    const totalTold = totalActive.filter(m => m.toldAt).length;
+    if (totalMarks >= 3) {
+      html.push(`
+        <div class="progress-strip">
+          <div class="ps-item"><span class="ps-num">${totalMarks}</span><span class="ps-label">个瞬间</span></div>
+          <div class="ps-divider"></div>
+          <div class="ps-item"><span class="ps-num">${totalTold}</span><span class="ps-label">个故事</span></div>
+          <div class="ps-divider"></div>
+          <div class="ps-item"><span class="ps-num">${Object.keys(WEEK_CHAPTERS).filter(k => k >= '2026-W27').length}</span><span class="ps-label">个周章节</span></div>
+        </div>
+      `);
+    }
+
     // 邀请卡（R1：邀请不是任务，不显示 0/3）
     let title, status;
     if (state.weekSkipped) {
@@ -940,6 +975,37 @@ if (isNative) {
         </div>
       `);
     }
+
+    // v3.32 锚点 ⑤：月度人物（归属感——"这些人和我共同度过"）
+    const monthMoments = state.moments.filter(m => m.date.startsWith(todayStr().slice(0,7)) && !m.archived);
+    const monthPeople = {};
+    monthMoments.forEach(m => (m.people||[]).forEach(p => monthPeople[p] = (monthPeople[p]||0)+1));
+    const topPeople = Object.entries(monthPeople).sort((a,b) => b[1]-a[1]).slice(0, 3);
+    if (topPeople.length > 0) {
+      html.push(`
+        <div class="month-people-card">
+          <div class="mp-label">这个月出现最多的人</div>
+          <div class="mp-list">
+            ${topPeople.map(([name, count], i) => `
+              <div class="mp-item">
+                <div class="mp-avatar">${escapeHtml(name[0])}</div>
+                <div class="mp-name">${escapeHtml(name)}</div>
+                <div class="mp-count">${count}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `);
+    }
+
+    // v3.32 锚点 ①：明日预告（Hook 触发器——好奇而非焦虑）
+    const tomorrowIdx = (dayOfYear + 1) % TOMORROW_PREVIEW.length;
+    html.push(`
+      <div class="tomorrow-preview">
+        <div class="tp-icon">🌅</div>
+        <div class="tp-text">${escapeHtml(TOMORROW_PREVIEW[tomorrowIdx])}</div>
+      </div>
+    `);
 
     // 跳过本周（R1）
     html.push(`
