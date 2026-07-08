@@ -28,7 +28,7 @@ if (isNative) {
   function track(event, data = {}) {
     try {
       const log = JSON.parse(localStorage.getItem(ANALYTICS_KEY) || '[]');
-      log.push({ event, data, ts: Date.now(), date: todayStr() });
+      log.push({ event, data: { ...data, abGroup: state.abGroup }, ts: Date.now(), date: todayStr() });
       if (log.length > 500) log.splice(0, log.length - 500);
       localStorage.setItem(ANALYTICS_KEY, JSON.stringify(log));
     } catch(e) {}
@@ -38,12 +38,38 @@ if (isNative) {
       const log = JSON.parse(localStorage.getItem(ANALYTICS_KEY) || '[]');
       const summary = {};
       for (const entry of log) {
-        if (!summary[entry.event]) summary[entry.event] = { count: 0, lastTs: 0 };
+        if (!summary[entry.event]) summary[entry.event] = { count: 0, lastTs: 0, groupA: 0, groupB: 0 };
         summary[entry.event].count++;
+        const g = entry.data?.abGroup || 'A';
+        if (g === 'A') summary[entry.event].groupA++; else summary[entry.event].groupB++;
         if (entry.ts > summary[entry.event].lastTs) summary[entry.event].lastTs = entry.ts;
       }
       return { total: log.length, events: summary };
     } catch(e) { return { total: 0, events: {} }; }
+  }
+
+  // v3.39 A/B 测试分组
+  const AB_KEY = 'tsd_ab_group';
+  function getABGroup() {
+    try {
+      let g = localStorage.getItem(AB_KEY);
+      if (!g) {
+        g = Math.random() < 0.5 ? 'A' : 'B';
+        localStorage.setItem(AB_KEY, g);
+      }
+      return g;
+    } catch(e) { return 'A'; }
+  }
+  // A 组：全部锚点；B 组：精简锚点（去掉低优先级的）
+  function shouldShowAnchor(name) {
+    if (state.abGroup === 'A') return true;  // A 组看全部
+    // B 组精简：只保留核心锚点
+    const bGroupAnchors = [
+      'time_greeting', 'days_counter', 'today_diff', 'progress_strip',
+      'night_scan', 'challenge_invite', 'week_chapter', 'skip_week',
+      'tomorrow_preview', 'memory_assets',
+    ];
+    return bGroupAnchors.includes(name);
   }
 
   // ============ 数据模式 ============
@@ -58,7 +84,8 @@ if (isNative) {
   }
 
   const state = {
-    mode: loadMode(),         // 'onboarding' | 'empty' | 'demo'
+    mode: loadMode(),
+    abGroup: getABGroup(),  // v3.39 A/B 测试分组         // 'onboarding' | 'empty' | 'demo'
     currentView: 'onboarding',
     moments: [],              // empty/demo 切换时填充
     onbStep: 0,               // onboarding 当前屏
@@ -788,10 +815,12 @@ if (isNative) {
     const greeting = TIME_GREETINGS[timeKey];
     html.push(`<div class="time-greeting">${greeting.icon} ${escapeHtml(greeting.text)}</div>`);
 
-    // v3.32 锚点 ②：每日一词
+    // v3.32 锚点 ②：每日一词（B 组不显示）
     const dayOfYear = Math.floor((TODAY - new Date(TODAY.getFullYear(), 0, 0)) / 86400000);
-    const dailyWord = DAILY_WORDS[dayOfYear % DAILY_WORDS.length];
-    html.push(`<div class="daily-word-card"><div class="dw-text">"${escapeHtml(dailyWord)}"</div><div class="dw-tag">只今天 · 明天换新的</div></div>`);
+    if (shouldShowAnchor('daily_word')) {
+      const dailyWord = DAILY_WORDS[dayOfYear % DAILY_WORDS.length];
+      html.push(`<div class="daily-word-card"><div class="dw-text">"${escapeHtml(dailyWord)}"</div><div class="dw-tag">只今天 · 明天换新的</div></div>`);
+    }
 
     // v3.33 锚点 #3：累计天数 + 首周里程碑（不是连续 streak——断了不惩罚）
     if (state.mode === 'empty') {
@@ -841,8 +870,8 @@ if (isNative) {
       `);
     }
 
-    // v3.33 锚点 #5：意外关联（跨时间连接——偶尔发现"原来之前也有过类似的"）
-    if (state.mode === 'empty' && totalMarks >= 4 && Math.random() < 0.3) {
+    // v3.33 锚点 #5：意外关联（B 组不显示）
+    if (shouldShowAnchor('connection') && state.mode === 'empty' && totalMarks >= 4 && Math.random() < 0.3) {
       // 找一个旧瞬间（7 天前以上）与近期瞬间的共同点
       const oldMoments = totalActive.filter(m => {
         const d = parseDate(m.date);
@@ -3768,12 +3797,12 @@ ${素材}
         <button class="upgrade-close" id="analytics-close">×</button>
       </div>
       <div class="upgrade-body">
-        <p style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;line-height:1.7">共记录 <b style="color:var(--amber-deep)">${summary.total}</b> 次行为。数据仅存在你的设备上。</p>
+        <p style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;line-height:1.7">共记录 <b style="color:var(--amber-deep)">${summary.total}</b> 次行为 · 你的分组：<b style="color:var(--moss-deep)">${state.abGroup}</b>（${state.abGroup === 'A' ? '全部锚点' : '精简锚点'}）<br/>数据仅存在你的设备上。</p>
         <div class="analytics-list">
           ${events.length === 0 ? '<p style="color:var(--ink-faint);text-align:center;padding:20px">还没有数据</p>' : events.map(([event, info]) => {
             const label = eventLabels[event] || event;
             const d = new Date(info.lastTs);
-            return `<div class="analytics-row"><span class="an-label">${label}</span><span class="an-count">${info.count}</span><span class="an-last">${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}</span></div>`;
+            return `<div class="analytics-row"><span class="an-label">${label}</span><span class="an-ab">A:${info.groupA||0} B:${info.groupB||0}</span><span class="an-count">${info.count}</span><span class="an-last">${d.getMonth()+1}/${d.getDate()}</span></div>`;
           }).join('')}
         </div>
         <button class="upgrade-btn" id="analytics-export" style="margin-top:14px;background:var(--bg-warm);color:var(--ink-soft)">导出 JSON</button>
