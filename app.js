@@ -1258,7 +1258,8 @@ if (isNative) {
     // ============================================================
   // L0 → L1 升级流（讲述）
   // ============================================================
-  track('upgrade_opened');
+  function openUpgrade(momentId) {
+    track('upgrade_opened');
     const m = getMoment(momentId);
     if (!m) return;
     state.upgradeTargetId = momentId;
@@ -3453,8 +3454,8 @@ ${素材}
             const wl = v.querySelector('#wipe-link');
             if (wl) wl.addEventListener('click', wipeAllData);
             // v3.17 收起的瞬间
-            const al2 = v.querySelector('#archived-link');
-            if (al2) al2.addEventListener('click', showArchivedMoments);
+            const arl = v.querySelector('#archived-link');
+            if (arl) arl.addEventListener('click', showArchivedMoments);
           }
           switchView('settings');
         } else if (target) {
