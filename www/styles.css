@@ -3471,3 +3471,127 @@ button:active:not(:disabled) {
   line-height: 1.6;
   animation: fadeIn 0.6s ease;
 }
+
+/* v3.34 #6 记忆资产汇总 */
+.memory-assets-card {
+  background: linear-gradient(135deg, rgba(253,246,232,0.9), rgba(245,230,200,0.7));
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+  margin: 20px 0;
+  border: 1px solid var(--amber-soft);
+  box-shadow: var(--shadow-sm);
+  animation: cardEnter 0.5s var(--ease-out) both;
+}
+.ma-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.ma-icon { font-size: 20px; }
+.ma-title {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.ma-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.ma-item {
+  text-align: center;
+  padding: 8px 4px;
+  background: rgba(255,253,248,0.6);
+  border-radius: var(--r-xs);
+}
+.ma-num {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--amber-deep);
+  line-height: 1.2;
+}
+.ma-label {
+  display: block;
+  font-size: 10px;
+  color: var(--ink-faint);
+  margin-top: 2px;
+}
+.ma-share-btn {
+  display: block;
+  width: 100%;
+  background: var(--amber);
+  color: #fff;
+  border: none;
+  padding: 10px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  margin-bottom: 6px;
+}
+.ma-share-btn:hover { background: var(--amber-deep); }
+.ma-gift-btn {
+  display: block;
+  width: 100%;
+  background: transparent;
+  color: var(--moss-deep);
+  border: 1px solid var(--moss-soft);
+  padding: 10px;
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+.ma-gift-btn:hover { background: rgba(168,192,160,0.12); }
+
+/* v3.34 #8 送给在乎的人 */
+.gift-overlay {
+  text-align: center;
+  padding: 24px 20px;
+}
+.gift-emoji { font-size: 48px; margin-bottom: 12px; }
+.gift-title {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 16px;
+}
+.gift-desc {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--ink-soft);
+}
+.gift-message-box {
+  background: var(--bg-paper);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 14px 16px;
+  margin: 18px 0;
+  text-align: left;
+}
+.gift-msg-label {
+  font-size: 11px;
+  color: var(--amber-deep);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+.gift-msg-text {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--ink);
+  user-select: all;
+  -webkit-user-select: all;
+}
+.gift-hint {
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-top: 16px;
+  line-height: 1.6;
+  font-style: italic;
+}

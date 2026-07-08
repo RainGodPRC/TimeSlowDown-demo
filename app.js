@@ -1051,6 +1051,31 @@ if (isNative) {
       `);
     }
 
+    // v3.34 锚点 #6：记忆资产汇总（宜家效应——"我投入了这么多，这是我的"）
+    if (totalMarks >= 5) {
+      const allPeople = [...new Set(totalActive.flatMap(m => m.people || []))];
+      const firsts = totalActive.filter(m => m.isFirst).length;
+      const earnedMs = getEarnedMilestones();
+      html.push(`
+        <div class="memory-assets-card" id="memory-assets-card">
+          <div class="ma-header">
+            <span class="ma-icon">🎁</span>
+            <span class="ma-title">你的记忆资产</span>
+          </div>
+          <div class="ma-grid">
+            <div class="ma-item"><span class="ma-num">${totalMarks}</span><span class="ma-label">瞬间</span></div>
+            <div class="ma-item"><span class="ma-num">${totalTold}</span><span class="ma-label">故事</span></div>
+            <div class="ma-item"><span class="ma-num">${allPeople.length}</span><span class="ma-label">人物</span></div>
+            <div class="ma-item"><span class="ma-num">${firsts}</span><span class="ma-label">第一次</span></div>
+            <div class="ma-item"><span class="ma-num">${earnedMs.length}</span><span class="ma-label">印记</span></div>
+            <div class="ma-item"><span class="ma-num">${Object.keys(WEEK_CHAPTERS).filter(k => k >= '2026-W27').length}</span><span class="ma-label">章节</span></div>
+          </div>
+          <button class="ma-share-btn" id="ma-share-btn">📸 生成月度回顾长图</button>
+          <button class="ma-gift-btn" id="ma-gift-btn">💌 送给在乎的人</button>
+        </div>
+      `);
+    }
+
     // v3.32 锚点 ①：明日预告（Hook 触发器——好奇而非焦虑）
     const tomorrowIdx = (dayOfYear + 1) % TOMORROW_PREVIEW.length;
     html.push(`
@@ -1163,6 +1188,12 @@ if (isNative) {
         lgePreview.innerHTML = cells;
       }
     }
+
+    // v3.34 #7 月度回顾长图 + #8 送给在乎的人
+    const maShareBtn = document.getElementById('ma-share-btn');
+    if (maShareBtn) maShareBtn.addEventListener('click', generateMonthlyReview);
+    const maGiftBtn = document.getElementById('ma-gift-btn');
+    if (maGiftBtn) maGiftBtn.addEventListener('click', showGiftOverlay);
   }
 
     // ============================================================
@@ -1695,6 +1726,172 @@ ${素材}
     });
     downloadCanvas(canvas, `tsd-season-2026-Q2.png`);
   }
+
+  // ============================================================
+  // v3.34 #7 月度回顾长图（社交货币——可分享朋友圈）
+  // ============================================================
+  function generateMonthlyReview() {
+    const active = state.moments.filter(m => !m.archived);
+    const told = active.filter(m => m.toldAt);
+    const people = [...new Set(active.flatMap(m => m.people || []))];
+    const firsts = active.filter(m => m.isFirst);
+    const earned = getEarnedMilestones();
+
+    // 选取 top 3 瞬间（优先 told + 有图）
+    const top3 = [...active].sort((a, b) => {
+      const aScore = (a.toldAt ? 10 : 0) + (a.image ? 5 : 0) + (a.isFirst ? 3 : 0);
+      const bScore = (b.toldAt ? 10 : 0) + (b.image ? 5 : 0) + (b.isFirst ? 3 : 0);
+      return bScore - aScore;
+    }).slice(0, 3);
+
+    const canvas = document.createElement('canvas');
+    const W = 1080, H = 1920;
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // 背景：暖色渐变
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#faf6ef');
+    bg.addColorStop(1, '#f0e6d0');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // 顶部品牌带
+    ctx.fillStyle = '#c8873c';
+    ctx.font = '600 36px "Noto Serif SC", serif';
+    ctx.fillText('TSD · Time Slow Down', 80, 100);
+    ctx.fillStyle = '#8a5a1f';
+    ctx.font = '22px "Noto Serif SC", serif';
+    ctx.fillText('让走过的时间，长成你的人生。', 80, 138);
+
+    // 分隔线
+    drawLine(ctx, 80, 180, W - 80, '#e8c89a');
+
+    // 标题
+    ctx.fillStyle = '#1f1c19';
+    ctx.font = '700 72px "Noto Serif SC", serif';
+    ctx.fillText('我的' + (active.length) + '个瞬间', 80, 290);
+
+    // 副标题
+    ctx.fillStyle = '#56524a';
+    ctx.font = '28px "Noto Sans SC", sans-serif';
+    ctx.fillText('在 TSD 留住的记忆资产', 80, 340);
+
+    // 数据统计区
+    let y = 430;
+    const stats = [
+      { num: active.length, label: '个瞬间' },
+      { num: told.length, label: '个故事' },
+      { num: people.length, label: '个人物' },
+      { num: firsts.length, label: '个第一次' },
+      { num: earned.length, label: '枚印记' },
+    ];
+    stats.forEach((s, i) => {
+      const col = i % 3;
+      const row = Math.floor(i / 3);
+      const x = 80 + col * 320;
+      const sy = y + row * 120;
+      ctx.fillStyle = '#c8873c';
+      ctx.font = '700 56px "Noto Serif SC", serif';
+      ctx.fillText(String(s.num), x, sy);
+      ctx.fillStyle = '#a8a094';
+      ctx.font = '24px "Noto Sans SC", sans-serif';
+      ctx.fillText(s.label, x + ctx.measureText(String(s.num)).width + 12, sy - 8);
+    });
+
+    // 精选瞬间
+    y = 700;
+    ctx.fillStyle = '#b07a4a';
+    ctx.font = '500 22px "Noto Sans SC", sans-serif';
+    ctx.fillText('最鲜明的几个', 80, y);
+    drawLine(ctx, 80, y + 14, W - 80, '#ece3d2');
+    y += 50;
+
+    top3.forEach((m, i) => {
+      const mood = MOODS[m.mood];
+      ctx.fillStyle = '#1f1c19';
+      ctx.font = '32px "Noto Serif SC", serif';
+      const text = mood.emoji + ' ' + (m.text || '').slice(0, 24);
+      ctx.fillText(text, 80, y + i * 90);
+      ctx.fillStyle = '#a8a094';
+      ctx.font = '20px "Noto Sans SC", sans-serif';
+      const meta = fmtDate(m.date) + (m.people && m.people.length ? ' · ' + m.people.join('、') : '');
+      ctx.fillText(meta, 80, y + i * 90 + 32);
+    });
+
+    // 底部品牌 + 推荐入口
+    y = H - 240;
+    drawLine(ctx, 80, y, W - 80, '#e8c89a');
+    y += 50;
+    ctx.fillStyle = '#8a5a1f';
+    ctx.font = 'italic 28px "Noto Serif SC", serif';
+    ctx.fillText('人不是活一辈子，而是活几个瞬间。', 80, y);
+    y += 50;
+    ctx.fillStyle = '#a8a094';
+    ctx.font = '22px "Noto Sans SC", sans-serif';
+    ctx.fillText('— TSD · 让走过的时间，长成你的人生 —', W/2 - 180, y + 40);
+
+    downloadCanvas(canvas, `tsd-monthly-review-${todayStr()}.png`);
+    showToast('月度回顾长图已生成 · 可分享朋友圈');
+  }
+
+  // ============================================================
+  // v3.34 #8 "送给在乎的人"（情感唤起推荐）
+  // ============================================================
+  function showGiftOverlay() {
+    const ov = document.getElementById('upgrade-overlay');
+    const card = ov.querySelector('.upgrade-card');
+    card.innerHTML = `
+      <div class="gift-overlay">
+        <div class="gift-emoji">💌</div>
+        <div class="gift-title">送给在乎的人</div>
+        <p class="gift-desc">如果你觉得 TSD 对你有用，也许你身边的人也需要它。</p>
+        <p class="gift-desc" style="margin-top:12px">不是邀请码、不是积分——<br/>只是单纯觉得，这个人也会喜欢。</p>
+
+        <div class="gift-message-box">
+          <div class="gift-msg-label">发给 TA 的话（可直接复制）：</div>
+          <div class="gift-msg-text" id="gift-msg-text">我发现了一个 App 叫 TSD，它帮我留住了生活中一些差点被忘记的瞬间。想到你，觉得你也许会喜欢。${location.href}</div>
+        </div>
+
+        <button class="upgrade-btn" id="gift-copy-btn">📋 复制这段话</button>
+        <button class="upgrade-btn" id="gift-share-btn" style="margin-top:8px;background:var(--moss)">📤 通过系统分享</button>
+
+        <p class="gift-hint">TSD 不做邀请奖励、不做裂变积分。<br/>推荐只因为"你也许会喜欢"。</p>
+      </div>
+    `;
+    ov.classList.add('show');
+
+    card.querySelector('#gift-copy-btn').addEventListener('click', () => {
+      const text = document.getElementById('gift-msg-text').textContent;
+      navigator.clipboard?.writeText(text).then(() => {
+        showToast('已复制 · 可粘贴发给 TA');
+      }).catch(() => {
+        showToast('复制失败 · 请手动选中复制');
+      });
+    });
+
+    card.querySelector('#gift-share-btn').addEventListener('click', async () => {
+      const text = document.getElementById('gift-msg-text').textContent;
+      if (isNative && CapacitorShare) {
+        try {
+          await CapacitorShare.share({ title: 'TSD', text });
+          return;
+        } catch(e) {}
+      }
+      if (navigator.share) {
+        try { await navigator.share({ title: 'TSD', text }); } catch(e) {}
+      } else {
+        navigator.clipboard?.writeText(text);
+        showToast('已复制 · 可粘贴到微信/短信');
+      }
+    });
+
+    // 关闭按钮（点 overlay 外部）
+    ov.addEventListener('click', function closeGift(e) {
+      if (e.target === ov) { ov.classList.remove('show'); ov.removeEventListener('click', closeGift); }
+    });
+  }
+
 
   // ============================================================
   // 视图 2：旷野语义缩放
