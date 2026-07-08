@@ -764,7 +764,7 @@ if (isNative) {
     // v3.32 锚点 ②：每日一词
     const dayOfYear = Math.floor((TODAY - new Date(TODAY.getFullYear(), 0, 0)) / 86400000);
     const dailyWord = DAILY_WORDS[dayOfYear % DAILY_WORDS.length];
-    html.push(`<div class="daily-word-card">${escapeHtml(dailyWord)}</div>`);
+    html.push(`<div class="daily-word-card"><div class="dw-text">"${escapeHtml(dailyWord)}"</div><div class="dw-tag">只今天 · 明天换新的</div></div>`);
 
     // v3.33 锚点 #3：累计天数 + 首周里程碑（不是连续 streak——断了不惩罚）
     if (state.mode === 'empty') {
@@ -970,13 +970,16 @@ if (isNative) {
     const weekChapterKey = weekKey(todayStr());
     const hasWeekChapter = !!WEEK_CHAPTERS[weekChapterKey];
     if (!hasWeekChapter && weekMoments.length >= 1 && !state.weekSkipped) {
+      // v3.35 蔡格尼克效应：强调"未完成"——让用户脑子里惦记着
+      const daysLeft = 7 - new Date().getDay(); // 周日=0，算还剩几天
+      const urgency = daysLeft <= 2 ? '还有 ' + daysLeft + ' 天这周就过去了' : '这一周即将过去';
       html.push(`
-        <div class="week-chapter-invite">
-          <div class="wc-eyebrow">这一周即将过去</div>
-          <div class="wc-title">要不要把它编成一个故事？</div>
-          <div class="wc-sub">从本周的瞬间里挑 2-3 个，给这周起个名字——这就是这一周的故事。</div>
-          <button class="wc-start-btn" id="wc-start-btn">开始本周章节</button>
-          <p class="wc-hint">5 分钟之内能完成。也可以这周就算了。</p>
+        <div class="week-chapter-invite zeigarnik">
+          <div class="wc-eyebrow">${urgency} · 你有一个未完成的故事</div>
+          <div class="wc-title">这周的 ${weekMoments.length} 个瞬间还没编成故事</div>
+          <div class="wc-sub">编完后它们就不会"飞快地消失"了——你会记住这一周讲的是什么。</div>
+          <button class="wc-start-btn" id="wc-start-btn">开始编故事</button>
+          <p class="wc-hint">5 分钟。也可以这周就算了——但故事会一直等你。</p>
         </div>
       `);
     } else if (hasWeekChapter) {
@@ -3716,6 +3719,23 @@ ${素材}
   window.__TSD_SHARE_SEASON = shareSeason;
 
   document.addEventListener('DOMContentLoaded', init);
+
+  // v3.35 峰终定律：离开 App 时的最后画面决定整体印象
+  let farewellShown = false;
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && !farewellShown && state.mode === 'empty') {
+      farewellShown = true;
+      // 闪一个温柔的告别（如果用户回来会看到）
+      const farewells = ['回头见。你的瞬间会等你。', '明天见。', '你的旷野会一直在这里。'];
+      const msg = farewells[Math.floor(Math.random() * farewells.length)];
+      const t = document.getElementById('toast');
+      if (t) { t.textContent = msg; t.classList.add('show'); }
+    } else if (document.visibilityState === 'visible') {
+      farewellShown = false;
+      const t = document.getElementById('toast');
+      if (t) t.classList.remove('show');
+    }
+  });
 })();
 
 // v3.25 Service Worker：仅 Web 模式注册（Capacitor 原生不需要）

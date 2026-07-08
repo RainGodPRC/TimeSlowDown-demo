@@ -3595,3 +3595,31 @@ button:active:not(:disabled) {
   line-height: 1.6;
   font-style: italic;
 }
+
+/* v3.35 深度心理学锚点 */
+
+/* 蔡格尼克：未完成的故事 */
+.week-chapter-invite.zeigarnik {
+  border: 2px solid var(--amber-soft);
+  animation: cardEnter 0.5s var(--ease-out) both, zeigarnikPulse 3s ease-in-out 1s infinite;
+}
+@keyframes zeigarnikPulse {
+  0%, 100% { box-shadow: var(--shadow-md); }
+  50%      { box-shadow: var(--shadow-md), 0 0 0 4px rgba(232, 200, 154, 0.2); }
+}
+
+/* 每日一词稀缺标签 */
+.daily-word-card .dw-text {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-style: italic;
+  color: var(--ink-soft);
+  line-height: 1.7;
+}
+.daily-word-card .dw-tag {
+  font-size: 10px;
+  color: var(--amber);
+  margin-top: 6px;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+}
