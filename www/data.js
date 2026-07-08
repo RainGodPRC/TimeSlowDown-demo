@@ -479,6 +479,39 @@ const TOMORROW_PREVIEW = [
   '明天的你，会感谢今天留住的这一刻。',
   '明天见。你的旷野会等着你。',
 ];
+
+// v3.33 时段问候（每日仪式感——根据时间给不同问候）
+const TIME_GREETINGS = {
+  morning: { icon: '🌅', text: '今天有什么值得留住的？' },         // 6-12
+  afternoon: { icon: '☀️', text: '下午了，有没有一个瞬间想留住？' }, // 12-18
+  evening: { icon: '🌆', text: '今天过得怎么样？' },                // 18-22
+  night: { icon: '🌙', text: '睡前，留一个今天的瞬间？' },          // 22-6
+};
+
+// v3.33 渐进解锁（防止首日信息过载）
+const PROGRESSIVE_UNLOCK = {
+  day0: ['mark'],                    // 第 1 天：只能 Mark
+  day1: ['mark', 'tell'],            // 第 2 天：解锁"说点什么"
+  day3: ['mark', 'tell', 'scan'],    // 第 5 天：解锁今晚扫描
+  day7: ['mark', 'tell', 'scan', 'chapter'], // 第 8 天：解锁周末章节
+};
+
+// v3.33 首周里程碑欢迎语
+const WELCOME_MILESTONES = {
+  1: '欢迎你。第一个瞬间是旷野里的第一根草。',
+  3: '你已经留了 3 个瞬间了。你的旷野开始有了形状。',
+  7: '一周了。你的第一周故事准备好了——想编一个吗？',
+  14: '两周了。回头看看，你会发现这些瞬间串成了一条线。',
+  30: '一个月了。你已经不像一个月前那样觉得时间飞快了——因为你留住了。',
+};
+
+// v3.33 意外关联模板（跨时间连接）
+const UNEXPECTED_CONNECTIONS = [
+  '你 {days} 天前也留过一个和 {people} 有关的瞬间。',
+  '{days} 天前你在 {location} 也留过一个瞬间。',
+  '上一次你在 TSD 讲故事，是 {days} 天前。',
+];
+
   perMark: [
     '留住了。这一刻不会消失了。',
     '又一个瞬间被你留住了。',
@@ -526,4 +559,5 @@ window.__TSD_DATA__ = {
   USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, PLAIN_MODE, ONBOARDING, NIGHT_SCAN,
   WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES, COMPOUND_LOOPS,
   DAILY_WORDS, TODAY_DIFFERENCE, TOMORROW_PREVIEW,
+  TIME_GREETINGS, PROGRESSIVE_UNLOCK, WELCOME_MILESTONES, UNEXPECTED_CONNECTIONS,
 };

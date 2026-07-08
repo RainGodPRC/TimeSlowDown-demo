@@ -3416,3 +3416,58 @@ button:active:not(:disabled) {
   font-style: italic;
   line-height: 1.5;
 }
+
+/* v3.33 心理学锚点样式 */
+
+/* #4 时段问候 */
+.time-greeting {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--ink);
+  padding: 4px 0 8px;
+  animation: fadeIn 0.5s ease;
+}
+
+/* #3 累计天数 */
+.days-counter {
+  font-size: 11px;
+  color: var(--amber-deep);
+  text-align: center;
+  padding: 4px 12px;
+  background: linear-gradient(135deg, rgba(253,246,232,0.5), rgba(245,230,200,0.3));
+  border-radius: 12px;
+  display: inline-block;
+  margin: 0 auto 8px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* #3 首周里程碑 */
+.welcome-milestone {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--amber-deep);
+  text-align: center;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, rgba(253,246,232,0.8), rgba(245,230,200,0.6));
+  border-radius: var(--r-sm);
+  border: 1px solid var(--amber-soft);
+  line-height: 1.7;
+  animation: cardEnter 0.5s var(--ease-out) 0.2s both;
+}
+
+/* #5 意外关联 */
+.connection-card {
+  font-size: 12px;
+  color: var(--moss-deep);
+  background: linear-gradient(135deg, rgba(168,192,160,0.12), rgba(168,192,160,0.04));
+  padding: 10px 14px;
+  border-radius: var(--r-sm);
+  margin-bottom: 16px;
+  border-left: 3px solid var(--moss-soft);
+  line-height: 1.6;
+  animation: fadeIn 0.6s ease;
+}

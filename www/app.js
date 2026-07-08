@@ -21,7 +21,7 @@ if (isNative) {
 }
 
 (() => {
-  const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, ONBOARDING, NIGHT_SCAN, WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES, COMPOUND_LOOPS, DAILY_WORDS, TODAY_DIFFERENCE, TOMORROW_PREVIEW } = window.__TSD_DATA__;
+  const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, ONBOARDING, NIGHT_SCAN, WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES, COMPOUND_LOOPS, DAILY_WORDS, TODAY_DIFFERENCE, TOMORROW_PREVIEW, TIME_GREETINGS, WELCOME_MILESTONES } = window.__TSD_DATA__;
 
   // ============ 数据模式 ============
   // 'onboarding' 首启动 | 'empty' 空状态（用户自己用）| 'demo' 示例数据（陈雨）
@@ -755,10 +755,34 @@ if (isNative) {
     const told = weekMoments.filter(m => m.toldAt);
     const untold = weekMoments.filter(m => !m.toldAt);
 
-    // v3.32 锚点 ②：每日一词（可变回报——每天打开看到不同的温柔句子）
+    // v3.33 锚点 #4：时段问候（每日仪式感——根据时间给不同问候）
+    const hour = new Date().getHours();
+    const timeKey = hour >= 6 && hour < 12 ? 'morning' : hour >= 12 && hour < 18 ? 'afternoon' : hour >= 18 && hour < 22 ? 'evening' : 'night';
+    const greeting = TIME_GREETINGS[timeKey];
+    html.push(`<div class="time-greeting">${greeting.icon} ${escapeHtml(greeting.text)}</div>`);
+
+    // v3.32 锚点 ②：每日一词
     const dayOfYear = Math.floor((TODAY - new Date(TODAY.getFullYear(), 0, 0)) / 86400000);
     const dailyWord = DAILY_WORDS[dayOfYear % DAILY_WORDS.length];
     html.push(`<div class="daily-word-card">${escapeHtml(dailyWord)}</div>`);
+
+    // v3.33 锚点 #3：累计天数 + 首周里程碑（不是连续 streak——断了不惩罚）
+    if (state.mode === 'empty') {
+      const firstMark = state.moments.find(m => m.id.startsWith('new-'));
+      if (firstMark) {
+        const firstDate = parseDate(firstMark.date);
+        const daysSince = Math.floor((TODAY.getTime() - firstDate.getTime()) / (24*60*60*1000));
+        if (daysSince >= 0) {
+          // 累计天数显示
+          html.push(`<div class="days-counter">已陪你 ${daysSince + 1} 天</div>`);
+          // 首周里程碑（只在特定天数显示）
+          const milestone = WELCOME_MILESTONES[daysSince + 1];
+          if (milestone) {
+            html.push(`<div class="welcome-milestone">${escapeHtml(milestone)}</div>`);
+          }
+        }
+      }
+    }
 
     // v3.32 锚点 ③："今天的不同"（检测今天 vs 昨天的变化）
     const todayMoments = state.moments.filter(m => m.date === todayStr() && !m.archived);
@@ -788,6 +812,35 @@ if (isNative) {
           <div class="ps-item"><span class="ps-num">${Object.keys(WEEK_CHAPTERS).filter(k => k >= '2026-W27').length}</span><span class="ps-label">个周章节</span></div>
         </div>
       `);
+    }
+
+    // v3.33 锚点 #5：意外关联（跨时间连接——偶尔发现"原来之前也有过类似的"）
+    if (state.mode === 'empty' && totalMarks >= 4 && Math.random() < 0.3) {
+      // 找一个旧瞬间（7 天前以上）与近期瞬间的共同点
+      const oldMoments = totalActive.filter(m => {
+        const d = parseDate(m.date);
+        return (TODAY.getTime() - d.getTime()) > 7 * 24 * 60 * 60 * 1000;
+      });
+      const recentMoments = totalActive.filter(m => {
+        const d = parseDate(m.date);
+        return (TODAY.getTime() - d.getTime()) <= 3 * 24 * 60 * 60 * 1000;
+      });
+      if (oldMoments.length > 0 && recentMoments.length > 0) {
+        // 找共同人物
+        for (const recent of recentMoments) {
+          if (!recent.people) continue;
+          for (const old of oldMoments) {
+            if (!old.people) continue;
+            const shared = recent.people.find(p => old.people.includes(p));
+            if (shared) {
+              const days = Math.floor((parseDate(recent.date).getTime() - parseDate(old.date).getTime()) / (24*60*60*1000));
+              html.push(`<div class="connection-card">🔗 ${days} 天前你也留过一个和${escapeHtml(shared)}有关的瞬间</div>`);
+              break;
+            }
+          }
+          break;
+        }
+      }
     }
 
     // 邀请卡（R1：邀请不是任务，不显示 0/3）
@@ -2776,8 +2829,17 @@ ${素材}
     setTimeout(() => {
       done.classList.remove('show');
       switchView('tell');
-      checkMilestones();  // v3.19 检查是否获得新印记
-    }, 2200);  // v3.29 #8: 延长到 2.2s 让仪式感更充分
+      checkMilestones();
+      // v3.33 #2：首日引导"说点什么"（如果这是用户的第一个瞬间）
+      if (totalMarks === 1 && state.mode === 'empty') {
+        setTimeout(() => {
+          const firstM = state.moments.find(m => m.id.startsWith('new-'));
+          if (firstM) {
+            showToast('想说说为什么这一刻重要吗？点"说点什么"', 4000);
+          }
+        }, 800);
+      }
+    }, 2200);
   }
 
   // ============================================================
