@@ -539,6 +539,7 @@ const UNEXPECTED_CONNECTIONS = [
   '上一次你在 TSD 讲故事，是 {days} 天前。',
 ];
 
+const COMPOUND_LOOPS = {
   perMark: [
     '留住了。这一刻不会消失了。',
     '又一个瞬间被你留住了。',
