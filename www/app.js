@@ -1138,7 +1138,7 @@ if (isNative) {
               `;
             }).join('')}
           </div>
-          <button class="upgrade-btn" id="wc-next-1" disabled>挑好了（0/2）</button>
+          <button class="upgrade-btn" id="wc-next-1" disabled>挑好了（0）</button>
         </div>
 
         <div class="wc-step" id="wc-step-2" style="display:none">
@@ -1174,8 +1174,8 @@ if (isNative) {
           item.classList.add('picked');
         }
         const next = card.querySelector('#wc-next-1');
-        next.disabled = picked.size < 2;
-        next.textContent = `挑好了（${picked.size}/3）`;
+        next.disabled = picked.size < 1;
+        next.textContent = `挑好了（${picked.size}）`;
       });
     });
 
