@@ -3812,3 +3812,23 @@ button:active:not(:disabled) {
   background: linear-gradient(135deg, rgba(253,246,232,0.6), rgba(245,230,200,0.4));
   border-radius: var(--r-sm);
 }
+
+/* v3.38 锚点看板 */
+.analytics-list { display: flex; flex-direction: column; gap: 4px; }
+.analytics-row {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-paper);
+  border-radius: var(--r-xs);
+  border: 1px solid var(--line-soft);
+  font-size: 13px;
+}
+.an-label { flex: 1; color: var(--ink); }
+.an-count {
+  font-family: var(--font-serif);
+  font-size: 18px; font-weight: 700;
+  color: var(--amber-deep);
+  min-width: 36px; text-align: right;
+}
+.an-last { font-size: 10px; color: var(--ink-faint); min-width: 70px; text-align: right; }

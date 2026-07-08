@@ -23,6 +23,29 @@ if (isNative) {
 (() => {
   const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, ONBOARDING, NIGHT_SCAN, WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES, COMPOUND_LOOPS, DAILY_WORDS, TODAY_DIFFERENCE, TOMORROW_PREVIEW, TIME_GREETINGS, WELCOME_MILESTONES, FIRST_MONTH_REVIEW } = window.__TSD_DATA__;
 
+  // v3.38 锚点埋点框架
+  const ANALYTICS_KEY = 'tsd_analytics';
+  function track(event, data = {}) {
+    try {
+      const log = JSON.parse(localStorage.getItem(ANALYTICS_KEY) || '[]');
+      log.push({ event, data, ts: Date.now(), date: todayStr() });
+      if (log.length > 500) log.splice(0, log.length - 500);
+      localStorage.setItem(ANALYTICS_KEY, JSON.stringify(log));
+    } catch(e) {}
+  }
+  function getAnalyticsSummary() {
+    try {
+      const log = JSON.parse(localStorage.getItem(ANALYTICS_KEY) || '[]');
+      const summary = {};
+      for (const entry of log) {
+        if (!summary[entry.event]) summary[entry.event] = { count: 0, lastTs: 0 };
+        summary[entry.event].count++;
+        if (entry.ts > summary[entry.event].lastTs) summary[entry.event].lastTs = entry.ts;
+      }
+      return { total: log.length, events: summary };
+    } catch(e) { return { total: 0, events: {} }; }
+  }
+
   // ============ 数据模式 ============
   // 'onboarding' 首启动 | 'empty' 空状态（用户自己用）| 'demo' 示例数据（陈雨）
   const STORAGE_KEY = 'tsd_v31_mode';
@@ -1206,7 +1229,7 @@ if (isNative) {
     // ============================================================
   // L0 → L1 升级流（讲述）
   // ============================================================
-  function openUpgrade(momentId) {
+  track('upgrade_opened');
     const m = getMoment(momentId);
     if (!m) return;
     state.upgradeTargetId = momentId;
@@ -1252,6 +1275,7 @@ if (isNative) {
     m.why = why;
     m.toldAt = todayStr();
     saveMoments();
+    track('upgrade_completed', { id: state.upgradeTargetId });
     closeUpgrade();
     renderTell();
     setTimeout(checkMilestones, 1800);  // v3.19
@@ -1374,6 +1398,7 @@ if (isNative) {
         growth: 'new_branch',
       };
       saveMoments();
+      track('chapter_completed', { title: title.slice(0,20) });
 
       // 第 3 步：展示成果
       card.querySelector('#wc-step-2').style.display = 'none';
@@ -1738,6 +1763,7 @@ ${素材}
   // v3.34 #7 月度回顾长图（社交货币——可分享朋友圈）
   // ============================================================
   function generateMonthlyReview() {
+    track('monthly_review_generated');
     const active = state.moments.filter(m => !m.archived);
     const told = active.filter(m => m.toldAt);
     const people = [...new Set(active.flatMap(m => m.people || []))];
@@ -1846,6 +1872,7 @@ ${素材}
   // v3.34 #8 "送给在乎的人"（情感唤起推荐）
   // ============================================================
   function showGiftOverlay() {
+    track('gift_opened');
     const ov = document.getElementById('upgrade-overlay');
     const card = ov.querySelector('.upgrade-card');
     card.innerHTML = `
@@ -1916,6 +1943,7 @@ ${素材}
   }
 
   function showFirstMonthReview() {
+    track('first_month_shown');
     const active = state.moments.filter(m => !m.archived);
     const told = active.filter(m => m.toldAt);
     const people = [...new Set(active.flatMap(m => m.people || []))];
@@ -2463,6 +2491,7 @@ ${素材}
 
 
   function showSeasonRitual() {
+    track('ritual_opened');
     const ritual = SEASON_RITUAL['2026-Q2'];
     const qMoments = ritual.keyMoments.map(id => getMoment(id)).filter(Boolean);
     const ov = document.getElementById('upgrade-overlay');
@@ -3209,6 +3238,7 @@ ${素材}
         };
         voiceMediaRecorder.start();
         isRecording = true;
+        track('voice_started');
         btn.classList.add('recording');
         voiceSeconds = 0;
         status.textContent = '录音中… 0s / 30s';
@@ -3289,6 +3319,7 @@ ${素材}
       why: null,
     };
     state.moments.unshift(newM);
+    track('moment_saved', { hasPhoto: !!imgSrc, hasVoice: !!state.voiceData, hasText: !!text, mood: state.selectedMood });
     saveMoments();
 
     // v3.31 复利回路文案（借鉴 Codex 四回路）
@@ -3350,6 +3381,7 @@ ${素材}
               </div>
               <div class="setting-group">
                 <div class="setting-row"><span>人生印记</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="milestones-link">查看 ›</span></div>
+                <div class="setting-row"><span>锚点效果数据</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="analytics-link">查看 ›</span></div>
                 <div class="setting-row"><span>关于 TSD</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="about-link">查看 ›</span></div>
                 <div class="setting-row"><span>版本</span><span style="font-size:11px;color:var(--ink-soft)">v3.19 Demo</span></div>
               </div>
@@ -3386,6 +3418,8 @@ ${素材}
             if (al) al.addEventListener('click', () => showInfoOverlay('about'));
             const ml = v.querySelector('#milestones-link');
             if (ml) ml.addEventListener('click', showMilestonesCollection);
+            const al2 = v.querySelector('#analytics-link');
+            if (al2) al2.addEventListener('click', showAnalyticsDashboard);
             // v3.12 彻底清除
             const wl = v.querySelector('#wipe-link');
             if (wl) wl.addEventListener('click', wipeAllData);
@@ -3714,6 +3748,47 @@ ${素材}
     });
   }
 
+  // v3.38 锚点效果看板
+  function showAnalyticsDashboard() {
+    const ov = document.getElementById('upgrade-overlay');
+    const card = ov.querySelector('.upgrade-card');
+    const summary = getAnalyticsSummary();
+    const events = Object.entries(summary.events).sort((a, b) => b[1].count - a[1].count);
+    const eventLabels = {
+      'moment_saved': '📸 Mark 瞬间', 'upgrade_opened': '💬 说点什么（打开）',
+      'upgrade_completed': '✅ 说点什么（完成）', 'chapter_opened': '📖 周章节（打开）',
+      'chapter_completed': '📖 周章节（完成）', 'ritual_opened': '🎬 季度仪式',
+      'milestone_shown': '🏅 印记弹出', 'gift_opened': '💌 送给在乎的人',
+      'first_month_shown': '🎉 首月回顾', 'voice_started': '🎤 语音录音',
+      'monthly_review_generated': '📊 月度长图',
+    };
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-title">锚点效果数据</span>
+        <button class="upgrade-close" id="analytics-close">×</button>
+      </div>
+      <div class="upgrade-body">
+        <p style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;line-height:1.7">共记录 <b style="color:var(--amber-deep)">${summary.total}</b> 次行为。数据仅存在你的设备上。</p>
+        <div class="analytics-list">
+          ${events.length === 0 ? '<p style="color:var(--ink-faint);text-align:center;padding:20px">还没有数据</p>' : events.map(([event, info]) => {
+            const label = eventLabels[event] || event;
+            const d = new Date(info.lastTs);
+            return `<div class="analytics-row"><span class="an-label">${label}</span><span class="an-count">${info.count}</span><span class="an-last">${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}</span></div>`;
+          }).join('')}
+        </div>
+        <button class="upgrade-btn" id="analytics-export" style="margin-top:14px;background:var(--bg-warm);color:var(--ink-soft)">导出 JSON</button>
+      </div>`;
+    ov.classList.add('show');
+    card.querySelector('#analytics-close').addEventListener('click', () => ov.classList.remove('show'));
+    card.querySelector('#analytics-export').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(getAnalyticsSummary(),null,2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob); const a = document.createElement('a');
+      a.href=url; a.download=`tsd-analytics-${todayStr()}.json`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+      showToast('已导出');
+    });
+  }
+
   function showInfoOverlay(type) {
     let ov = document.getElementById('info-overlay');
     if (!ov) {
@@ -3869,6 +3944,7 @@ ${素材}
     }
   }
   function showMilestonePopup(ms) {
+    track('milestone_shown', { id: ms.id, type: ms.type || 'basic' });
     const ov = document.getElementById('upgrade-overlay');
     const card = ov.querySelector('.upgrade-card');
     const isLife = ms.type === 'life';
