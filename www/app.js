@@ -822,20 +822,46 @@ if (isNative) {
       html.push(`<div class="daily-word-card"><div class="dw-text">"${escapeHtml(dailyWord)}"</div><div class="dw-tag">只今天 · 明天换新的</div></div>`);
     }
 
-    // v3.33 锚点 #3：累计天数 + 首周里程碑（不是连续 streak——断了不惩罚）
+    // v3.33 锚点 #3：累计天数 + 首周里程碑 + v3.43 活力热力图
     if (state.mode === 'empty') {
       const firstMark = state.moments.find(m => m.id.startsWith('new-'));
       if (firstMark) {
         const firstDate = parseDate(firstMark.date);
         const daysSince = Math.floor((TODAY.getTime() - firstDate.getTime()) / (24*60*60*1000));
         if (daysSince >= 0) {
-          // 累计天数显示
           html.push(`<div class="days-counter">已陪你 ${daysSince + 1} 天</div>`);
-          // 首周里程碑（只在特定天数显示）
           const milestone = WELCOME_MILESTONES[daysSince + 1];
           if (milestone) {
             html.push(`<div class="welcome-milestone">${escapeHtml(milestone)}</div>`);
           }
+
+          // v3.43 活力热力图（不是 streak——断了不归零，只是"安静"）
+          const activeDays = {};
+          for (const m of state.moments) {
+            if (m.archived) continue;
+            activeDays[m.date] = (activeDays[m.date] || 0) + 1;
+          }
+          const heatDays = Math.min(daysSince + 1, 28);  // 最多显示 28 天
+          const heatCells = [];
+          for (let i = heatDays - 1; i >= 0; i--) {
+            const d = new Date(TODAY.getTime() - i * 24*60*60*1000);
+            const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            const count = activeDays[ds] || 0;
+            let cls = 'heat-cell';
+            if (count >= 3) cls += ' heat-3';
+            else if (count === 2) cls += ' heat-2';
+            else if (count === 1) cls += ' heat-1';
+            else cls += ' heat-0';
+            heatCells.push(`<div class="${cls}" title="${ds}: ${count} 个瞬间"></div>`);
+          }
+          const activeCount = Object.values(activeDays).filter(c => c > 0).length;
+          html.push(`
+            <div class="vitality-heatmap">
+              <div class="vh-label">最近 ${heatDays} 天的活力</div>
+              <div class="vh-grid">${heatCells.join('')}</div>
+              <div class="vh-hint">${activeCount} 天有记录 · 不是连续——是你的节奏</div>
+            </div>
+          `);
         }
       }
     }
