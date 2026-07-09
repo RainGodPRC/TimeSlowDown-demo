@@ -501,10 +501,52 @@ const PROGRESSIVE_UNLOCK = {
 // v3.33 首周里程碑欢迎语
 const WELCOME_MILESTONES = {
   1: '欢迎你。第一个瞬间是旷野里的第一根草。',
+  2: '第二天了。昨天留的那个瞬间还在——它没有消失。',
   3: '你已经留了 3 个瞬间了。你的旷野开始有了形状。',
+  5: '5 天了。你的今晚扫描开始帮你发现值得讲的瞬间。',
   7: '一周了。你的第一周故事准备好了——想编一个吗？',
-  14: '两周了。回头看看，你会发现这些瞬间串成了一条线。',
+  10: '10 天了。回头看看，你会发现自己已经不像以前那样忘了。',
+  14: '两周了。那些瞬间串成了一条线——你开始有自己的故事了。',
+  21: '三周了。习惯开始形成——你打开 TSD 不再需要提醒。',
   30: '一个月了。你已经不像一个月前那样觉得时间飞快了——因为你留住了。',
+  60: '两个月了。你的旷野已经有了花草和树。',
+  90: '三个月了。你能讲出这三个月的故事吗？',
+};
+
+// v3.41 心流状态文案（Flow Theory——编故事/看仪式时的沉浸感增强）
+const FLOW_PROMPTS = {
+  chapterStart: '深呼吸。接下来的 5 分钟，只有你和这一周的故事。',
+  chapterPicking: '选你心里真正想留的那几个——不是"应该"选的。',
+  chapterNaming: '给这一周起个名字。不用正式——就像给一个日子取外号。',
+  chapterDone: '你刚刚把七天，编成了一个故事。它不会消失了。',
+  ritualStart: '闭上眼。让这三个月的画面在脑中浮现。',
+  ritualReveal: '看——这就是你活过的证据。',
+  ritualDone: '这三个月没有被时间吞掉。你能讲出来。',
+  monthNaming: '给这个月起个名字——它不只是日历上的数字。',
+};
+
+// v3.41 个性化周摘要模板（AI 规则引擎——从用户数据生成"你的这周"）
+const WEEKLY_DIGEST_TEMPLATES = {
+  noData: '这周还没开始记录。从留一个瞬间开始？',
+  oneMoment: '这周你留了 1 个瞬间："{text}"。它可能是这周最重要的事。',
+  fewMoments: '这周你留了 {count} 个瞬间。{people}出现了 {peopleCount} 次。',
+  rich: '这周很丰富——{count} 个瞬间，{toldCount} 个你讲过。这周的故事准备好了。',
+  quiet: '这周比较安静——{count} 个瞬间。安静的一周也是完整的一周。',
+};
+
+// v3.41 社交展示个人化（分享图水印）
+const SHARE_PERSONALIZATION = {
+  watermarks: [
+    '我的人生，我留住',
+    '时间不会回来，但瞬间可以',
+    '每一个瞬间都值得',
+    '我在用 TSD 留住人生',
+  ],
+  signatures: [
+    '— 来自 TSD',
+    '— 让时间慢下来',
+    '— 我的记忆资产',
+  ],
 };
 
 // v3.37 首月回顾（30 天触发的惊喜 + 社交货币）
@@ -589,4 +631,5 @@ window.__TSD_DATA__ = {
   DAILY_WORDS, TODAY_DIFFERENCE, TOMORROW_PREVIEW,
   TIME_GREETINGS, PROGRESSIVE_UNLOCK, WELCOME_MILESTONES, UNEXPECTED_CONNECTIONS,
   FIRST_MONTH_REVIEW, YEAR_REVIEW_SEED,
+  FLOW_PROMPTS, WEEKLY_DIGEST_TEMPLATES, SHARE_PERSONALIZATION,
 };

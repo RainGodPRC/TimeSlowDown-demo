@@ -21,7 +21,7 @@ if (isNative) {
 }
 
 (() => {
-  const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, ONBOARDING, NIGHT_SCAN, WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES, COMPOUND_LOOPS, DAILY_WORDS, TODAY_DIFFERENCE, TOMORROW_PREVIEW, TIME_GREETINGS, WELCOME_MILESTONES, FIRST_MONTH_REVIEW } = window.__TSD_DATA__;
+  const { USER, MOODS, MOMENTS, WEEK_CHALLENGE, MEADOW_LEVELS, ONBOARDING, NIGHT_SCAN, WEEK_CHAPTERS, MONTH_LANDSCAPES, SEASON_RITUAL, LIFE_MILESTONES, COMPOUND_LOOPS, DAILY_WORDS, TODAY_DIFFERENCE, TOMORROW_PREVIEW, TIME_GREETINGS, WELCOME_MILESTONES, FIRST_MONTH_REVIEW, FLOW_PROMPTS, WEEKLY_DIGEST_TEMPLATES, SHARE_PERSONALIZATION } = window.__TSD_DATA__;
 
   // v3.38 锚点埋点框架
   const ANALYTICS_KEY = 'tsd_analytics';
@@ -925,6 +925,27 @@ if (isNative) {
         <div class="invite-period">这一周</div>
         <div class="invite-title">${escapeHtml(title)}</div>
         <div class="invite-status">${escapeHtml(status)}</div>
+        ${(() => {
+          // v3.41 个性化周摘要
+          const wm = weekMoments;
+          if (wm.length === 0) return '';
+          const people = [...new Set(wm.flatMap(m => m.people || []))];
+          const told = wm.filter(m => m.toldAt).length;
+          let digest;
+          if (wm.length === 1) {
+            digest = WEEKLY_DIGEST_TEMPLATES.oneMoment.replace('{text}', escapeHtml(wm[0].text.slice(0, 30)));
+          } else if (told >= 3) {
+            digest = WEEKLY_DIGEST_TEMPLATES.rich.replace('{count}', wm.length).replace('{toldCount}', told);
+          } else if (wm.length <= 2) {
+            digest = WEEKLY_DIGEST_TEMPLATES.quiet.replace('{count}', wm.length);
+          } else {
+            digest = WEEKLY_DIGEST_TEMPLATES.fewMoments
+              .replace('{count}', wm.length)
+              .replace('{people}', people.length > 0 ? people.slice(0,2).map(escapeHtml).join('、') : '日常')
+              .replace('{peopleCount}', people.length || 0);
+          }
+          return `<div class="weekly-digest">${escapeHtml(digest)}</div>`;
+        })()}
       </div>
     `);
 
@@ -1331,9 +1352,10 @@ if (isNative) {
         <button class="upgrade-close" id="wc-close">×</button>
       </div>
       <div class="upgrade-body">
+        <div class="flow-prompt-banner">${escapeHtml(FLOW_PROMPTS.chapterStart)}</div>
         <div class="wc-step" id="wc-step-1">
           <div class="compose-section-label">第 1 步 · 从本周瞬间里挑 2-3 个</div>
-          <p style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;line-height:1.7">这周哪些瞬间你想留住？挑出来，TSD 会帮你串成故事。</p>
+          <p style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;line-height:1.7">${escapeHtml(FLOW_PROMPTS.chapterPicking)}</p>
           <div class="wc-pick-list" id="wc-pick-list">
             ${weekMoments.map(m => {
               const mood = MOODS[m.mood];
@@ -1354,7 +1376,7 @@ if (isNative) {
 
         <div class="wc-step" id="wc-step-2" style="display:none">
           <div class="compose-section-label">第 2 步 · 给这一周起个名字</div>
-          <p style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;line-height:1.7">不用正式，就一个名字。比如"一个人的电影院"、"梅雨结束的那一周"。</p>
+          <p style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;line-height:1.7">${escapeHtml(FLOW_PROMPTS.chapterNaming)}</p>
           <input class="wc-title-input" id="wc-title-input" placeholder="比如：和一束光待了一周" maxlength="20" />
           <div class="compose-section-label" style="margin-top:18px">第 3 步 · 想补一句吗？ <span class="label-hint">（可选）</span></div>
           <textarea class="wc-note-input" id="wc-note-input" placeholder="这周讲的是什么？不补也行。" maxlength="100" rows="3"></textarea>
@@ -1437,7 +1459,7 @@ if (isNative) {
       card.querySelector('#wc-done-body').innerHTML = `
         <p style="font-family:var(--font-serif);font-size:14px;line-height:1.85;color:var(--ink);margin:14px 0;padding-left:12px;border-left:3px solid var(--amber-soft)">${escapeHtml(opening)}</p>
         ${note ? `<p style="font-size:13px;color:var(--ink-soft);line-height:1.7">${escapeHtml(note)}</p>` : ''}
-        <p style="font-size:11px;color:var(--ink-faint);margin-top:14px">这一周被编进了你的 TSD。<br/>它不会消失在"飞快的过去"里了。</p>
+        <p style="font-size:11px;color:var(--ink-faint);margin-top:14px">${escapeHtml(FLOW_PROMPTS.chapterDone)}</p>
       `;
     });
 
@@ -1655,13 +1677,19 @@ ${素材}
     }
 
     // 底部装饰：旷野 SVG 风格简笔（草+花）
-    y = H - 240;
+    y = H - 260;
     drawMiniMeadow(ctx, 80, y, W - 160, 140);
+
+    // v3.41 个人化水印
+    const watermark = SHARE_PERSONALIZATION.watermarks[dayOfYear % SHARE_PERSONALIZATION.watermarks.length];
+    ctx.fillStyle = '#c8873c';
+    ctx.font = 'italic 24px "Noto Serif SC", serif';
+    ctx.fillText('"' + watermark + '"', W / 2 - ctx.measureText('"'+watermark+'"').width / 2, H - 80);
 
     // 底部签名
     ctx.fillStyle = '#b3aa9c';
-    ctx.font = '22px "Noto Sans SC", sans-serif';
-    ctx.fillText('— TSD —', W / 2 - 40, H - 60);
+    ctx.font = '20px "Noto Sans SC", sans-serif';
+    ctx.fillText('— TSD · 让走过的时间，长成你的人生 —', W / 2 - 160, H - 40);
 
     return canvas;
   }

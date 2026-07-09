@@ -3833,3 +3833,28 @@ button:active:not(:disabled) {
 }
 .an-last { font-size: 10px; color: var(--ink-faint); min-width: 70px; text-align: right; }
 .an-ab { font-size: 10px; color: var(--moss-deep); min-width: 64px; text-align: center; }
+
+/* v3.41 心流 + 周摘要 */
+.flow-prompt-banner {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--moss-deep);
+  text-align: center;
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, rgba(168,192,160,0.1), rgba(168,192,160,0.04));
+  border-radius: var(--r-sm);
+  border: 1px solid rgba(168,192,160,0.15);
+  line-height: 1.6;
+}
+.weekly-digest {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.5);
+  border-radius: var(--r-xs);
+  line-height: 1.6;
+  font-style: italic;
+}
