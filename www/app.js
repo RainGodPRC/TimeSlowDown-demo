@@ -2023,13 +2023,195 @@ ${素材}
     const firstMark = state.moments.find(m => m.id.startsWith('new-'));
     if (!firstMark) return;
     const days = Math.floor((TODAY.getTime() - parseDate(firstMark.date).getTime()) / (24*60*60*1000));
+    // v3.44: 也检测年度回顾（365 天）
+    if (days + 1 >= YEAR_REVIEW_SEED.triggerDays) {
+      try {
+        if (!localStorage.getItem('tsd_year_review_shown')) {
+          localStorage.setItem('tsd_year_review_shown', '1');
+          showYearReview();
+          return;
+        }
+      } catch(e) {}
+    }
     if (days + 1 < FIRST_MONTH_REVIEW.triggerDays) return;
-    // 只弹一次
     try {
       if (localStorage.getItem('tsd_first_month_shown')) return;
       localStorage.setItem('tsd_first_month_shown', '1');
     } catch(e) { return; }
     showFirstMonthReview();
+  }
+
+  // v3.44 年度回顾（365 天惊喜触发 + 社交货币长图）
+  function showYearReview() {
+    const { YEAR_REVIEW_SEED } = window.__TSD_DATA__;
+    const active = state.moments.filter(m => !m.archived);
+    const told = active.filter(m => m.toldAt);
+    const people = [...new Set(active.flatMap(m => m.people || []))];
+    const firsts = active.filter(m => m.isFirst);
+    const earned = getEarnedMilestones();
+    const title = YEAR_REVIEW_SEED.titles[0];
+    const intro = YEAR_REVIEW_SEED.intros[Math.floor(Math.random() * YEAR_REVIEW_SEED.intros.length)];
+    const closing = YEAR_REVIEW_SEED.closings[Math.floor(Math.random() * YEAR_REVIEW_SEED.closings.length)];
+
+    // 按月分组统计
+    const monthCounts = {};
+    active.forEach(m => {
+      const mk = m.date.slice(0, 7);
+      monthCounts[mk] = (monthCounts[mk] || 0) + 1;
+    });
+    const months = Object.entries(monthCounts).sort();
+
+    // Top 7 精选瞬间
+    const top7 = [...active].sort((a, b) => {
+      const aScore = (a.toldAt ? 10 : 0) + (a.image ? 5 : 0) + (a.isFirst ? 3 : 0);
+      const bScore = (b.toldAt ? 10 : 0) + (b.image ? 5 : 0) + (b.isFirst ? 3 : 0);
+      return bScore - aScore;
+    }).slice(0, 7);
+
+    const ov = document.getElementById('upgrade-overlay');
+    const card = ov.querySelector('.upgrade-card');
+    card.innerHTML = `
+      <div class="first-month-review">
+        <div class="fmr-emoji">🎊</div>
+        <div class="fmr-label">已陪你一年 · 365 天</div>
+        <div class="fmr-title" style="font-size:24px">${escapeHtml(title)}</div>
+        <div class="fmr-intro">${escapeHtml(intro)}</div>
+        <div class="fmr-stats">
+          <div class="fmr-stat"><span class="fmr-num">${active.length}</span><span class="fmr-lbl">瞬间</span></div>
+          <div class="fmr-stat"><span class="fmr-num">${told.length}</span><span class="fmr-lbl">故事</span></div>
+          <div class="fmr-stat"><span class="fmr-num">${people.length}</span><span class="fmr-lbl">人物</span></div>
+          <div class="fmr-stat"><span class="fmr-num">${firsts.length}</span><span class="fmr-lbl">第一次</span></div>
+          <div class="fmr-stat"><span class="fmr-num">${months.length}</span><span class="fmr-lbl">活跃月</span></div>
+          <div class="fmr-stat"><span class="fmr-num">${earned.length}</span><span class="fmr-lbl">印记</span></div>
+        </div>
+        <div class="fmr-highlights">
+          <div class="fmr-hl-label">这一年最鲜明的几个</div>
+          ${top7.map(m => {
+            const mood = MOODS[m.mood];
+            return `<div class="fmr-hl-item">${mood.emoji} ${escapeHtml(m.text.slice(0, 30))}<span class="fmr-hl-date">${fmtDate(m.date)}</span></div>`;
+          }).join('')}
+        </div>
+        <div class="fmr-closing">${escapeHtml(closing)}</div>
+        <button class="upgrade-btn" id="yr-share">📸 生成年度回顾长图</button>
+        <button class="upgrade-btn" id="yr-close" style="background:var(--bg-warm);color:var(--ink-soft);margin-top:8px">回头看看就好</button>
+      </div>
+    `;
+    ov.classList.add('show');
+    track('year_review_shown');
+    card.querySelector('#yr-close').addEventListener('click', () => ov.classList.remove('show'));
+    card.querySelector('#yr-share').addEventListener('click', () => {
+      track('year_review_shared');
+      generateYearCanvas(active, told, people, firsts, earned, top7, months, title, intro, closing);
+    });
+  }
+
+  function generateYearCanvas(active, told, people, firsts, earned, top7, months, title, intro, closing) {
+    const canvas = document.createElement('canvas');
+    const W = 1080, H = 2800;
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#faf6ef'); bg.addColorStop(0.5, '#f5efe0'); bg.addColorStop(1, '#ebe2c8');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    // 装饰
+    ctx.fillStyle = 'rgba(200,135,60,0.03)';
+    ctx.beginPath(); ctx.arc(W*0.85, 150, 350, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(W*0.15, H*0.8, 300, 0, Math.PI*2); ctx.fill();
+
+    // 品牌
+    ctx.fillStyle = '#c8873c'; ctx.font = '600 36px "Noto Serif SC", serif';
+    ctx.fillText('TSD · Time Slow Down', 80, 100);
+    ctx.fillStyle = '#8a5a1f'; ctx.font = '22px "Noto Serif SC", serif';
+    ctx.fillText('让走过的时间，长成你的人生。', 80, 138);
+    drawLine(ctx, 80, 180, W - 80, '#e8c89a');
+
+    // 标题
+    let y = 320;
+    ctx.fillStyle = '#1f1c19'; ctx.font = '700 88px "Noto Serif SC", serif';
+    ctx.fillText(title, 80, y);
+
+    // 引言
+    y += 90;
+    ctx.fillStyle = '#8a5a1f'; ctx.font = 'italic 30px "Noto Serif SC", serif';
+    wrapText(ctx, intro, 80, y, W - 160, 50);
+
+    // 数据
+    y += 220;
+    const stats = [
+      { num: active.length, label: '个瞬间' },
+      { num: told.length, label: '个故事' },
+      { num: people.length, label: '个人物' },
+      { num: firsts.length, label: '个第一次' },
+      { num: months.length, label: '个活跃月' },
+      { num: earned.length, label: '枚印记' },
+    ];
+    ctx.fillStyle = '#b07a4a'; ctx.font = '500 22px "Noto Sans SC", sans-serif';
+    ctx.fillText('365 天的数据', 80, y);
+    drawLine(ctx, 80, y + 14, W - 80, '#ece3d2');
+    y += 60;
+    stats.forEach((s, i) => {
+      const col = i % 3; const row = Math.floor(i / 3);
+      const x = 80 + col * 320; const sy = y + row * 120;
+      ctx.fillStyle = '#c8873c'; ctx.font = '700 56px "Noto Serif SC", serif';
+      ctx.fillText(String(s.num), x, sy);
+      ctx.fillStyle = '#a8a094'; ctx.font = '24px "Noto Sans SC", sans-serif';
+      ctx.fillText(s.label, x + ctx.measureText(String(s.num)).width + 12, sy - 8);
+    });
+
+    // 月度分布
+    y += 290;
+    ctx.fillStyle = '#b07a4a'; ctx.font = '500 22px "Noto Sans SC", sans-serif';
+    ctx.fillText('月度分布', 80, y);
+    drawLine(ctx, 80, y + 14, W - 80, '#ece3d2');
+    y += 50;
+    const maxMonth = Math.max(...months.map(([_, c]) => c), 1);
+    months.forEach(([mk, count], i) => {
+      const barH = (count / maxMonth) * 40;
+      const bx = 80 + i * (months.length > 12 ? 60 : 80);
+      ctx.fillStyle = '#c8873c';
+      ctx.fillRect(bx, y + 40 - barH, months.length > 12 ? 40 : 60, barH);
+      ctx.fillStyle = '#a8a094'; ctx.font = '14px "Noto Sans SC", sans-serif';
+      ctx.fillText(mk.slice(5), bx, y + 56);
+    });
+
+    // 精选瞬间
+    y += 120;
+    ctx.fillStyle = '#b07a4a'; ctx.font = '500 22px "Noto Sans SC", sans-serif';
+    ctx.fillText('这一年最鲜明的几个', 80, y);
+    drawLine(ctx, 80, y + 14, W - 80, '#ece3d2');
+    y += 60;
+    top7.forEach((m, i) => {
+      const mood = MOODS[m.mood];
+      ctx.fillStyle = '#1f1c19'; ctx.font = '32px "Noto Serif SC", serif';
+      wrapText(ctx, mood.emoji + ' ' + m.text.slice(0, 28), 80, y + i * 80, W - 260, 40);
+      ctx.fillStyle = '#a8a094'; ctx.font = '20px "Noto Sans SC", sans-serif';
+      ctx.fillText(fmtDate(m.date), 80, y + i * 80 + 30);
+    });
+
+    // 旷野装饰
+    y += top7.length * 80 + 40;
+    drawMiniMeadow(ctx, 80, y, W - 160, 100);
+
+    // 水印 + 结尾
+    y += 160;
+    const dayOfYear = Math.floor((TODAY - new Date(TODAY.getFullYear(), 0, 0)) / 86400000);
+    const watermark = SHARE_PERSONALIZATION.watermarks[dayOfYear % SHARE_PERSONALIZATION.watermarks.length];
+    ctx.fillStyle = '#c8873c'; ctx.font = 'italic 26px "Noto Serif SC", serif';
+    ctx.fillText('"' + watermark + '"', 80, y);
+    y += 50;
+    ctx.fillStyle = '#8a5a1f'; ctx.font = 'italic 28px "Noto Serif SC", serif';
+    wrapText(ctx, closing, 80, y, W - 160, 45);
+
+    // 底部
+    y = H - 140;
+    drawLine(ctx, 80, y, W - 80, '#e8c89a');
+    ctx.fillStyle = '#a8a094'; ctx.font = '22px "Noto Sans SC", sans-serif';
+    ctx.fillText('— TSD · 让走过的时间，长成你的人生 —', W/2 - 180, y + 50);
+    ctx.fillStyle = '#c8873c'; ctx.font = '20px "Noto Sans SC", sans-serif';
+    ctx.fillText('raingodprc.github.io/TimeSlowDown-demo', W/2 - 150, y + 85);
+
+    downloadCanvas(canvas, `tsd-year-review-${todayStr()}.png`);
+    showToast('年度回顾长图已生成 · 可分享朋友圈');
   }
 
   function showFirstMonthReview() {
