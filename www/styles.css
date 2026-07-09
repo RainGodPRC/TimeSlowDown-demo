@@ -3858,3 +3858,13 @@ button:active:not(:disabled) {
   line-height: 1.6;
   font-style: italic;
 }
+.lge-nudge {
+  font-size: 11px;
+  color: var(--moss-deep);
+  font-style: italic;
+  margin-bottom: 8px;
+  padding: 4px 10px;
+  background: rgba(168,192,160,0.08);
+  border-radius: 8px;
+  display: inline-block;
+}

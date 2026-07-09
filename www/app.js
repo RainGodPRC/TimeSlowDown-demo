@@ -1091,6 +1091,7 @@ if (isNative) {
             <span><b>${age}</b> 岁 · 第 <b>${nowWeek}</b> 周</span>
             <span><b>${recordedWeeks.size}</b> 周被点亮</span>
           </div>
+          ${recordedWeeks.size > 0 ? `<div class="lge-nudge">${recordedWeeks.size} 周的痕迹在你这里——不要让它们荒掉</div>` : ''}
           <div class="lge-preview" id="lge-preview"></div>
           <button class="lge-btn" id="lge-btn">展开我的一生 ›</button>
         </div>
@@ -2564,6 +2565,7 @@ ${素材}
       <div class="upgrade-body ritual-body" id="ritual-body">
         <div class="ritual-step" id="ritual-step-1">
           <div style="text-align:center;padding:20px 0">
+            <div class="flow-prompt-banner" style="margin-bottom:20px">${escapeHtml(FLOW_PROMPTS.ritualStart)}</div>
             <div style="font-size:48px;margin-bottom:14px">🕯️</div>
             <p style="font-family:var(--font-serif);font-size:20px;color:var(--ink);line-height:1.6;margin-bottom:10px">闭上眼，<br/>用 60 秒回想这三个月</p>
             <p style="font-size:13px;color:var(--ink-soft);line-height:1.7;margin-bottom:20px">不需要翻档案。<br/>最先浮现的几个经历是什么？<br/>它们就是你真正记住的。</p>
