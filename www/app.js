@@ -1388,7 +1388,8 @@ if (isNative) {
           <div class="wc-done-icon">📖</div>
           <div class="wc-done-title" id="wc-done-title"></div>
           <div class="wc-done-body" id="wc-done-body"></div>
-          <button class="upgrade-btn" id="wc-done-close">回到这一周</button>
+          <button class="story-share-btn" id="wc-done-share" style="margin-bottom:8px">📤 把这一周的故事分享给在乎的人</button>
+          <button class="upgrade-btn" id="wc-done-close" style="background:var(--bg-warm);color:var(--ink-soft)">回到这一周</button>
         </div>
       </div>
     `;
@@ -1467,6 +1468,10 @@ if (isNative) {
     card.querySelector('#wc-done-close').addEventListener('click', () => {
       overlay.classList.remove('show');
       renderTell();
+    });
+    card.querySelector('#wc-done-share')?.addEventListener('click', () => {
+      track('chapter_shared');
+      shareWeekChapter();
     });
   }
 
@@ -4017,11 +4022,16 @@ ${素材}
         <div class="milestone-desc">${escapeHtml(ms.desc)}</div>
         ${ms.prototype ? `<div class="milestone-prototype">${escapeHtml(ms.prototype)}</div>` : ''}
         <button class="upgrade-btn" id="ms-close">收下</button>
+        <button class="story-share-btn" id="ms-share" style="margin-top:8px;background:var(--moss)">📤 分享这一刻</button>
         <p class="milestone-hint">它已嵌入你的旷野。<br/>下一枚仍在生活的雾里。</p>
       </div>
     `;
     ov.classList.add('show');
     card.querySelector('#ms-close').addEventListener('click', () => ov.classList.remove('show'));
+    card.querySelector('#ms-share')?.addEventListener('click', () => {
+      track('milestone_shared');
+      showGiftOverlay();
+    });
   }
   function showMilestonesCollection() {
     const ov = document.getElementById('upgrade-overlay');
