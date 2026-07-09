@@ -1158,6 +1158,38 @@ if (isNative) {
       `);
     }
 
+    // v3.45 #31: 情绪分布可视化（情感标签 + 自我认知 + 社交货币）
+    if (totalMarks >= 3) {
+      const moodCounts = {};
+      totalActive.forEach(m => { moodCounts[m.mood] = (moodCounts[m.mood] || 0) + 1; });
+      const sortedMoods = Object.entries(moodCounts).sort((a,b) => b[1] - a[1]);
+      const dominantMood = sortedMoods[0];
+      const dominantMoodInfo = MOODS[dominantMood[0]];
+      const totalForPct = totalActive.length;
+      html.push(`
+        <div class="mood-distribution-card">
+          <div class="md-label">这个月的情绪地图</div>
+          <div class="md-bars">
+            ${sortedMoods.slice(0, 5).map(([key, count]) => {
+              const m = MOODS[key];
+              const pct = Math.round(count / totalForPct * 100);
+              return `<div class="md-bar-row">
+                <span class="md-bar-emoji">${m.emoji}</span>
+                <div class="md-bar-track"><div class="md-bar-fill" style="width:${pct}%;background:${m.color}"></div></div>
+                <span class="md-bar-count">${count}</span>
+              </div>`;
+            }).join('')}
+          </div>
+          <div class="md-insight">你最常的感受是 ${dominantMoodInfo.emoji} ${dominantMoodInfo.label}</div>
+        </div>
+      `);
+    }
+
+    // v3.45 #33: 互惠价值量化（互惠原则——"TSD 帮你留住了 N 个瞬间"）
+    if (totalMarks >= 3 && state.mode === 'empty') {
+      html.push(`<div class="reciprocity-card">TSD 帮你留住了 <b>${totalMarks}</b> 个瞬间。如果觉得有用，也许你身边的人也需要。</div>`);
+    }
+
     // v3.34 锚点 #6：记忆资产汇总（宜家效应——"我投入了这么多，这是我的"）
     if (totalMarks >= 5) {
       const allPeople = [...new Set(totalActive.flatMap(m => m.people || []))];
@@ -2576,8 +2608,25 @@ ${素材}
       themes.unshift({ label: '第一次', emoji: '🌱', color: '#5d7a5c', moments: firsts, isSpecial: true });
     }
 
+    // v3.45 #32: 人生主题提取（叙事身份——"你的人生主题是___"）
+    const allPeople = [...new Set(state.moments.filter(m=>!m.archived).flatMap(m => m.people || []))];
+    const dominantMoodKey = Object.entries(themeMap).sort((a,b) => b[1].moments.length - a[1].moments.length)[0];
+    const firstCount = state.moments.filter(m => m.isFirst && !m.archived).length;
+    let lifeTheme = '';
+    const themeParts = [];
+    if (allPeople.length >= 2) themeParts.push('与' + allPeople.slice(0,2).join('、') + '共度');
+    if (firstCount >= 2) themeParts.push('探索新事物');
+    if (dominantMoodKey && dominantMoodKey[1].moments.length >= 3) themeParts.push(MOODS[dominantMoodKey[0]].label + '的时刻');
+    if (themeParts.length === 0) themeParts.push('正在书写中');
+    lifeTheme = themeParts.slice(0, 2).join(' + ');
+
     return `
       <div class="theme-lens">
+        <div class="life-theme-card">
+          <div class="lt-label">你的人生主题</div>
+          <div class="lt-theme">${escapeHtml(lifeTheme)}</div>
+          <div class="lt-hint">从你的 ${state.moments.filter(m=>!m.archived).length} 个瞬间中浮现</div>
+        </div>
         <div class="lens-intro">这是你记忆里的几条主线。</div>
         ${themes.map(t => `
           <div class="theme-card" style="border-left-color: ${t.color}">

@@ -3903,3 +3903,62 @@ button:active:not(:disabled) {
   margin-top: 8px;
   font-style: italic;
 }
+
+/* v3.45 情绪分布 + 人生主题 + 互惠 */
+.mood-distribution-card {
+  background: var(--bg-paper);
+  border-radius: var(--r-sm);
+  padding: 14px 16px;
+  margin: 16px 0;
+  border: 1px solid var(--line-soft);
+}
+.md-label {
+  font-size: 11px; color: var(--ink-faint); margin-bottom: 10px;
+  letter-spacing: 1px; text-transform: uppercase;
+}
+.md-bars { display: flex; flex-direction: column; gap: 6px; }
+.md-bar-row { display: flex; align-items: center; gap: 8px; }
+.md-bar-emoji { font-size: 14px; width: 20px; text-align: center; }
+.md-bar-track {
+  flex: 1; height: 8px; background: var(--bg-warm);
+  border-radius: 4px; overflow: hidden;
+}
+.md-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s var(--ease-out); }
+.md-bar-count { font-size: 11px; color: var(--ink-faint); min-width: 20px; text-align: right; }
+.md-insight {
+  font-size: 12px; color: var(--amber-deep);
+  margin-top: 8px; font-style: italic;
+}
+
+.reciprocity-card {
+  font-size: 12px; color: var(--ink-soft);
+  text-align: center; padding: 10px 16px;
+  margin: 12px 0;
+  background: rgba(168,192,160,0.08);
+  border-radius: var(--r-xs);
+  line-height: 1.6;
+}
+.reciprocity-card b { color: var(--amber-deep); font-family: var(--font-serif); font-size: 16px; }
+
+.life-theme-card {
+  background: linear-gradient(135deg, rgba(253,246,232,0.9), rgba(245,230,200,0.7));
+  border-radius: var(--r-md);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  border: 1px solid var(--amber-soft);
+  text-align: center;
+}
+.lt-label {
+  font-size: 11px; color: var(--amber-deep);
+  letter-spacing: 1.5px; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.lt-theme {
+  font-family: var(--font-serif);
+  font-size: 20px; font-weight: 600;
+  color: var(--ink); line-height: 1.5;
+}
+.lt-hint {
+  font-size: 11px; color: var(--ink-faint);
+  margin-top: 8px; font-style: italic;
+}
