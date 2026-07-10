@@ -40,19 +40,36 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-
-	<!-- TSD 权限文案 -->
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>TSD 需要访问你的照片库，让你选择要 Mark 的瞬间照片。我们不会读取或上传你的其他照片。</string>
 	<key>NSCameraUsageDescription</key>
 	<string>TSD 需要使用相机，让你直接拍摄要留住的瞬间。照片仅保存在你的设备上。</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>TSD 需要保存你生成的分享故事卡到相册。</string>
-
-	<!-- App 隐私清单（iOS 17+） -->
 	<key>NSPrivacyTracking</key>
 	<false/>
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+			</array>
+		</dict>
+	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

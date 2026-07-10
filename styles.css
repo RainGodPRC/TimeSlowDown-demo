@@ -969,6 +969,26 @@ html, body {
   }
 }
 
+/* v3.51 真机适配：全局 Safe Area（Capacitor 原生环境） */
+@supports (padding: env(safe-area-inset-top)) {
+  .phone-screen .status-bar {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .phone-screen .tab-bar {
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  }
+  .phone-screen .tell-scroll,
+  .phone-screen .meadow-scroll,
+  .phone-screen .archive-scroll,
+  .phone-screen .compose-body {
+    padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+  }
+  .phone-screen .fab {
+    bottom: calc(90px + env(safe-area-inset-bottom, 0px));
+  }
+}
+}
+
 /* ============================================================
    v3.1：Onboarding + 空状态首页
    ============================================================ */

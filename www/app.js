@@ -4,7 +4,7 @@
 // ============================================================
 
 // v3.25 Capacitor 检测 + 插件加载（浏览器里安全降级）
-const isNative = typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform;
+const isNative = typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
 let CapacitorCamera = null;
 let CapacitorPrefs = null;
 let CapacitorShare = null;
