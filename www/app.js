@@ -3601,17 +3601,19 @@ ${素材}`;
 
   function openCompose() {
     switchView('compose');
-    document.getElementById('compose-text').value = '';
-    document.getElementById('compose-people').value = '';
-    document.getElementById('compose-first').checked = false;
+    const el = id => { const e = document.getElementById(id); return e; };
+    const txt = el('compose-text'); if (txt) txt.value = '';
+    const ppl = el('compose-people'); if (ppl) ppl.value = '';
+    const fst = el('compose-first'); if (fst) fst.checked = false;
     // v3.16 重置图片 slot（保留隐藏的 file input）
-    const slot = document.getElementById('compose-image-slot');
-    const existingInput = slot.querySelector('input[type="file"]');
-    slot.innerHTML = '<span class="image-placeholder">＋ Mark 一张照片（推荐，5 秒就够）</span>';
-    slot.style.border = '1px dashed var(--line)';
-    slot.style.background = 'var(--bg-warm)';
-    slot._tsdImage = null;
-    if (existingInput) slot.appendChild(existingInput);  // 挂回 input
+    const slot = el('compose-image-slot');
+    if (slot) {
+      const existingInput = slot.querySelector('input[type="file"]');
+      slot.innerHTML = '<span class="image-placeholder">＋ Mark 一张照片（推荐，5 秒就够）</span>';
+      slot.style.boxShadow = 'inset 0 0 0 1.5px rgba(200, 135, 60, 0.12)';
+      slot._tsdImage = null;
+      if (existingInput) slot.appendChild(existingInput);  // 挂回 input
+    }
     document.querySelectorAll('.mood-chip').forEach(c => c.classList.remove('selected'));
     document.querySelectorAll('.weather-chip').forEach(c => c.classList.remove('selected'));
     document.querySelector('.weather-chip[data-weather="plain"]')?.classList.add('active');
@@ -3734,11 +3736,15 @@ ${素材}`;
   }
 
   function saveCompose() {
-    const text = document.getElementById('compose-text').value.trim();
-    const people = document.getElementById('compose-people').value.trim();
-    const isFirst = document.getElementById('compose-first').checked;
+    const textEl = document.getElementById('compose-text');
+    const peopleEl = document.getElementById('compose-people');
+    const firstEl = document.getElementById('compose-first');
     const slot = document.getElementById('compose-image-slot');
-    const imgSrc = slot._tsdImage || null;  // v3.16 真实上传的 data URL
+    if (!textEl) return;  // DOM 未就绪
+    const text = textEl.value.trim();
+    const people = peopleEl ? peopleEl.value.trim() : '';
+    const isFirst = firstEl ? firstEl.checked : false;
+    const imgSrc = (slot && slot._tsdImage) || null;
     const hasImage = !!imgSrc;
 
     // R3 应对：L0 Mark 也算——只要有照片或心情或文字任意一个
