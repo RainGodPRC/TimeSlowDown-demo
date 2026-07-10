@@ -34,6 +34,7 @@ let CapacitorPrefs = null;
 let CapacitorShare = null;
 let CapacitorFS = null;
 let CapacitorLN = null;
+let CapacitorHaptics = null;
 
 if (isNative) {
   // Capacitor 原生环境：动态加载插件
@@ -42,6 +43,7 @@ if (isNative) {
   try { CapacitorShare = window.Capacitor.Plugins.Share; } catch(e) {}
   try { CapacitorFS = window.Capacitor.Plugins.Filesystem; } catch(e) {}
   try { CapacitorLN = window.Capacitor.Plugins.LocalNotifications; } catch(e) {}
+  try { CapacitorHaptics = window.Capacitor.Plugins.Haptics; } catch(e) {}
 }
 
 (() => {
@@ -55,6 +57,17 @@ if (isNative) {
       log.push({ event, data: { ...data, abGroup: state.abGroup }, ts: Date.now(), date: todayStr() });
       if (log.length > 500) log.splice(0, log.length - 500);
       localStorage.setItem(ANALYTICS_KEY, JSON.stringify(log));
+    } catch(e) {}
+  }
+
+  // v3.57: 原生触感反馈（轻触/选中/成功）
+  function haptic(type = 'light') {
+    if (!isNative || !CapacitorHaptics) return;
+    try {
+      if (type === 'light') CapacitorHaptics.impact({ style: 'LIGHT' });
+      else if (type === 'medium') CapacitorHaptics.impact({ style: 'MEDIUM' });
+      else if (type === 'success') CapacitorHaptics.notification({ type: 'SUCCESS' });
+      else if (type === 'selection') CapacitorHaptics.selectionStart();
     } catch(e) {}
   }
   function getAnalyticsSummary() {
@@ -508,6 +521,7 @@ if (isNative) {
   // ============ 视图切换 ============
   function switchView(name) {
     state.currentView = name;
+    if (state.currentView !== name) haptic('selection');
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.dataset.view === name));
     document.querySelectorAll('.tab').forEach(t => {
       const isActive = t.dataset.tab === name;
@@ -3759,6 +3773,7 @@ ${素材}`;
     }
     state.moments.unshift(newM);
     track('moment_saved', { hasPhoto: !!imgSrc, hasVoice: !!state.voiceData, hasText: !!text, mood: state.selectedMood });
+    haptic('success');  // 成功触感反馈
     saveMoments();
 
     // v3.31 复利回路文案（借鉴 Codex 四回路）
@@ -3991,6 +4006,7 @@ ${素材}`;
       document.querySelectorAll('.mood-chip').forEach(c => c.classList.remove('selected'));
       chip.classList.add('selected');
       state.selectedMood = chip.dataset.mood;
+      haptic('light');
     });
     // v3.25 照片上传（Capacitor Camera 原生 + FileReader Web 双模式）
     const imgSlot = document.getElementById('compose-image-slot');
