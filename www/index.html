@@ -17,7 +17,7 @@
   <meta name="apple-mobile-web-app-title" content="TSD" />
   <meta name="theme-color" content="#c8873c" />
   <meta name="description" content="让走过的时间，长成你的人生。" />
-  <link rel="stylesheet" href="styles.css?v=74" />
+  <link rel="stylesheet" href="styles.css?v=75" />
 </head>
 <body>
 
@@ -148,13 +148,13 @@
         <!-- 录入页 -->
         <section class="view view-compose" data-view="compose">
           <header class="view-header">
-            <button class="icon-btn" id="compose-close">×</button>
+            <button class="icon-btn" id="compose-close" aria-label="关闭">×</button>
             <div class="view-title-small">留住一刻</div>
-            <button class="save-btn" id="compose-save">留住</button>
+            <button class="save-btn" id="compose-save" aria-label="保存这一刻">留住</button>
           </header>
           <div class="compose-body">
             <div class="compose-prompt" id="compose-prompt">这一刻，有什么你想留住的？</div>
-            <div class="compose-image-slot" id="compose-image-slot">
+            <div class="compose-image-slot" id="compose-image-slot" role="button" aria-label="添加照片">
               <span class="image-placeholder">＋ 留一张照片（5 秒就够）</span>
             </div>
             <div class="compose-section-label">说一句 <span class="label-hint">（🎤 按住录音，松开保存）</span></div>
@@ -234,21 +234,23 @@
 
       </main>
 
-      <nav class="tab-bar" id="tab-bar">
-        <button class="tab active" data-tab="tell">
+      <nav class="tab-bar" id="tab-bar" role="tablist">
+        <button class="tab active" data-tab="tell" role="tab" aria-label="这一周" aria-selected="true">
           <span class="tab-icon">🌅</span>
           <span class="tab-label">这一周</span>
         </button>
-        <button class="tab" data-tab="meadow">
+        <button class="tab" data-tab="meadow" role="tab" aria-label="旷野">
           <span class="tab-icon">🌿</span>
           <span class="tab-label">旷野</span>
         </button>
-        <button class="tab tab-add" id="tab-add"><span class="tab-icon">＋</span></button>
-        <button class="tab" data-tab="archive">
+        <button class="tab tab-add" id="tab-add" role="button" aria-label="留住一刻">
+          <span class="tab-icon">＋</span>
+        </button>
+        <button class="tab" data-tab="archive" role="tab" aria-label="原料库">
           <span class="tab-icon">📜</span>
           <span class="tab-label">原料</span>
         </button>
-        <button class="tab" data-tab="settings">
+        <button class="tab" data-tab="settings" role="tab" aria-label="设置">
           <span class="tab-icon">◯</span>
           <span class="tab-label">设置</span>
         </button>
@@ -258,7 +260,7 @@
   </div>
 </div>
 
-<script src="data.js?v=74"></script>
-<script src="app.js?v=74"></script>
+<script src="data.js?v=75"></script>
+<script src="app.js?v=75"></script>
 </body>
 </html>

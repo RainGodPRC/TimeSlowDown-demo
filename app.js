@@ -505,7 +505,11 @@ if (isNative) {
   function switchView(name) {
     state.currentView = name;
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.dataset.view === name));
-    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    document.querySelectorAll('.tab').forEach(t => {
+      const isActive = t.dataset.tab === name;
+      t.classList.toggle('active', isActive);
+      if (t.getAttribute('role') === 'tab') t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
     document.getElementById('tab-bar').style.display = (name === 'compose' || name === 'onboarding') ? 'none' : 'flex';
     if (name === 'tell') renderTell();
     if (name === 'meadow') renderMeadow();
