@@ -213,14 +213,18 @@ if (isNative) {
       if (v.userNamed) userMonths[k] = v;
     }
     // 异步写 IDB（不阻塞 UI）
-    idbSet('moments', userMoments);
+    idbSet('moments', userMoments).then(ok => {
+      if (!ok) showToast('存储空间不足，旧的瞬间可能无法保留');
+    });
     idbSet('chapters', userChapters);
     idbSet('months', userMonths);
     // 同时写 localStorage 作为 fallback（小数据时可用）
     try {
       localStorage.setItem('tsd_user_chapters', JSON.stringify(userChapters));
       localStorage.setItem('tsd_user_months', JSON.stringify(userMonths));
-    } catch(e) {}
+    } catch(e) {
+      // localStorage 满了（QuotaExceeded），不影响 IDB 写入
+    }
   }
 
   // v3.30：loadMoments 改为异步从 IndexedDB 加载
@@ -3748,6 +3752,11 @@ ${素材}`;
       toldAt: null,
       why: null,
     };
+    // 安全检查：如果单条 moment 超过 2MB（照片+语音），截断图片
+    const momentSize = JSON.stringify(newM).length;
+    if (momentSize > 2 * 1024 * 1024 && newM.image) {
+      newM.image = null;  // 放弃存原图，保留文字+心情
+    }
     state.moments.unshift(newM);
     track('moment_saved', { hasPhoto: !!imgSrc, hasVoice: !!state.voiceData, hasText: !!text, mood: state.selectedMood });
     saveMoments();
@@ -4040,14 +4049,15 @@ ${素材}`;
 
         // 有图 → 显示
         if (dataUrl) {
+          // 显示加载状态（大图压缩可能需要 1-2 秒）
+          imgSlot.innerHTML = `<span class="image-placeholder" style="opacity:0.5">处理中…</span>`;
           // Capacitor 返回的 base64 可能很大，先压缩
           if (isNative) {
             dataUrl = await compressImage(dataUrl, 800, 0.7);
           }
-          imgSlot.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover"/>`;
+          imgSlot.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover" alt=""/>`;
           if (imgSlot._fileInput) imgSlot.appendChild(imgSlot._fileInput);
-          imgSlot.style.border = '1px solid var(--line)';
-          imgSlot.style.background = '#fff';
+          imgSlot.style.boxShadow = 'inset 0 0 0 1.5px rgba(200, 135, 60, 0.12)';
           imgSlot._tsdImage = dataUrl;
         }
       });
