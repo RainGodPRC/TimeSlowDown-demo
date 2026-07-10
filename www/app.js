@@ -3,6 +3,30 @@
 // 论点：D 讲述优先 + B Mark 优先 + C 旷野优先
 // ============================================================
 
+// v3.52: 全局错误捕获器——真机测试时记录所有 JS 异常
+// 存到 localStorage，导出后供开发者分析
+(function() {
+  const LOG_KEY = 'tsd_error_log';
+  const MAX_LOGS = 50;
+  function logError(type, msg, url, line, col, stack) {
+    try {
+      const entry = { t: Date.now(), type, msg: String(msg).substring(0, 300), url: url ? String(url).substring(0, 100) : '', line, col, stack: stack ? String(stack).substring(0, 500) : '' };
+      const raw = localStorage.getItem(LOG_KEY);
+      const logs = raw ? JSON.parse(raw) : [];
+      logs.unshift(entry);
+      if (logs.length > MAX_LOGS) logs.length = MAX_LOGS;
+      localStorage.setItem(LOG_KEY, JSON.stringify(logs));
+    } catch(e) {}
+  }
+  window.addEventListener('error', e => logError('error', e.message, e.filename, e.lineno, e.colno, e.error && e.error.stack));
+  window.addEventListener('unhandledrejection', e => logError('promise', e.reason && (e.reason.message || e.reason), '', 0, 0, e.reason && e.reason.stack));
+  // 暴露导出函数（设置页可调用）
+  window.__tsdExportErrorLog = function() {
+    const raw = localStorage.getItem(LOG_KEY);
+    return raw ? JSON.parse(raw) : [];
+  };
+})();
+
 // v3.25 Capacitor 检测 + 插件加载（浏览器里安全降级）
 const isNative = typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform();
 let CapacitorCamera = null;
@@ -3745,6 +3769,7 @@ ${素材}`;
               <div class="setting-group">
                 <div class="setting-row"><span>设计者：看示例数据</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="demo-link">陈雨三个月 ›</span></div>
                 <div class="setting-row"><span>设计者：重置 onboarding</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="reset-link">点这里</span></div>
+                <div class="setting-row"><span>设计者：错误日志</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="errorlog-link">查看 ›</span></div>
               </div>
             `;
             document.querySelector('.app-views').appendChild(v);
@@ -3752,6 +3777,27 @@ ${素材}`;
             if (rl) rl.addEventListener('click', () => {
               try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
               location.reload();
+            });
+            const elog = v.querySelector('#errorlog-link');
+            if (elog) elog.addEventListener('click', () => {
+              const logs = window.__tsdExportErrorLog ? window.__tsdExportErrorLog() : [];
+              if (logs.length === 0) {
+                showToast('没有错误日志 · 一切正常');
+              } else {
+                const json = JSON.stringify(logs, null, 2);
+                if (navigator.share) {
+                  navigator.share({ title: 'TSD 错误日志', text: json });
+                } else {
+                  // 复制到剪贴板
+                  const ta = document.createElement('textarea');
+                  ta.value = json;
+                  document.body.appendChild(ta);
+                  ta.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(ta);
+                  showToast(`已复制 ${logs.length} 条错误日志`);
+                }
+              }
             });
             const st = v.querySelector('#scan-toggle');
             if (st) st.addEventListener('click', () => {
