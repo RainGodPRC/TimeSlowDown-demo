@@ -662,13 +662,21 @@ html, body {
   line-height: 1.5; color: var(--ink); margin-bottom: 22px;
 }
 .compose-image-slot {
-  width: 100%; aspect-ratio: 16/10; background: var(--bg-warm);
-  border-radius: var(--r-md); display: flex; align-items: center; justify-content: center;
-  margin-bottom: 22px; cursor: pointer; border: 1px dashed var(--line);
-  transition: background 0.2s; overflow: hidden;
+  width: 100%; aspect-ratio: 16/10;
+  background: linear-gradient(135deg, #faf3e6 0%, #f5ead4 100%);
+  border-radius: var(--r-lg); display: flex; align-items: center; justify-content: center;
+  margin-bottom: 22px; cursor: pointer; border: none;
+  box-shadow: inset 0 0 0 1.5px rgba(200, 135, 60, 0.12);
+  transition: all 0.25s var(--ease-spring); overflow: hidden; position: relative;
 }
-.compose-image-slot:hover { background: var(--bg-warm); }
-.image-placeholder { font-size: 12px; color: var(--ink-faint); }
+.compose-image-slot::before {
+  content: ''; position: absolute; inset: 6px;
+  border-radius: calc(var(--r-lg) - 4px);
+  border: 1px dashed rgba(200, 135, 60, 0.25);
+  pointer-events: none;
+}
+.compose-image-slot:active { transform: scale(0.97); }
+.image-placeholder { font-size: 13px; color: var(--amber); font-weight: 500; }
 .compose-section-label {
   font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
   color: var(--ink-faint); margin-bottom: 10px; margin-top: 4px;
@@ -676,14 +684,19 @@ html, body {
 }
 .compose-mood-row { display: flex; gap: 6px; margin-bottom: 22px; flex-wrap: wrap; }
 .mood-chip {
-  padding: 5px 10px; border-radius: 20px;
+  padding: 6px 12px; border-radius: 20px;
   background: var(--bg-warm); border: 1px solid var(--line);
-  font-size: 12px; color: var(--ink-soft); cursor: pointer;
-  display: inline-flex; align-items: center; gap: 3px;
-  transition: all 0.15s;
+  font-size: 13px; color: var(--ink-soft); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
+  transition: all 0.2s var(--ease-spring);
+  -webkit-tap-highlight-color: transparent;
 }
-.mood-chip:hover { background: var(--bg-warm); }
-.mood-chip.selected { background: var(--ink); color: #fff; border-color: var(--ink); }
+.mood-chip:active { transform: scale(0.92); }
+.mood-chip.selected {
+  background: var(--ink); color: #fff; border-color: var(--ink);
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(62, 50, 39, 0.2);
+}
 .compose-text {
   width: 100%; border: none; background: transparent;
   font-family: var(--font-sans); font-size: 15px; line-height: 1.6;
@@ -822,6 +835,16 @@ html, body {
   font-size: 44px; margin-bottom: 22px;
   box-shadow: 0 12px 36px rgba(200, 135, 60, 0.5), 0 4px 12px rgba(200, 135, 60, 0.3);
   animation: doneIconPop 0.6s var(--ease-spring) 0.1s both;
+  position: relative;
+}
+.done-icon::after {
+  content: ''; position: absolute; inset: -8px; border-radius: 50%;
+  border: 2px solid var(--amber); opacity: 0;
+  animation: doneRipple 1s var(--ease-out) 0.4s both;
+}
+@keyframes doneRipple {
+  0% { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(1.8); opacity: 0; }
 }
 @keyframes doneIconPop {
   0% { transform: scale(0) rotate(-20deg); opacity: 0; }
@@ -2292,23 +2315,25 @@ html, body {
   flex-wrap: wrap;
 }
 .weather-chip {
-  padding: 6px 11px;
+  padding: 6px 12px;
   border-radius: 16px;
   background: var(--bg-warm);
   border: 1px solid var(--line);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ink-soft);
   cursor: pointer;
   font-family: var(--font-sans);
-  transition: all 0.15s;
-  opacity: 0.7;
+  transition: all 0.2s var(--ease-spring);
+  opacity: 0.75;
+  -webkit-tap-highlight-color: transparent;
 }
-.weather-chip:hover { opacity: 1; }
+.weather-chip:active { transform: scale(0.92); }
 .weather-chip.active, .weather-chip.selected {
   background: var(--ink);
   color: #fff;
   border-color: var(--ink);
   opacity: 1;
+  transform: scale(1.05);
 }
 .weather-chip[data-weather="foggy"].selected { background: #9aa5b3; border-color: #9aa5b3; }
 .weather-chip[data-weather="rainy"].selected { background: #5d7a9b; border-color: #5d7a9b; }
