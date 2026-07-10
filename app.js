@@ -669,12 +669,12 @@ if (isNative) {
 
   function handleOnbSkip() {
     const step = ONBOARDING.steps[state.onbStep];
-    if (step.skipText === '其实没有') {
-      // 第 1 屏"其实没有" → 跳到第 2 屏（不强迫共情）
+    if (step.skipText === '先看看为什么') {
+      // v3.48: 跳到第 2 屏（为什么+格子合并屏）
       state.onbStep = 1;
       renderOnboarding();
     } else if (step.skipText === '先看看示例') {
-      // 第 5 屏"先看看示例" → 打开"三个月对比" overlay（不再直接进 demo mode）
+      // "先看看示例" → 打开"三个月对比" overlay
       showCompareOverlay();
     }
   }
@@ -3664,14 +3664,15 @@ ${素材}
       done.classList.remove('show');
       switchView('tell');
       checkMilestones();
-      // v3.33 #2：首日引导"说点什么"（如果这是用户的第一个瞬间）
+      // v3.48: 首日引导强化——第一个瞬间后直接弹升级流（不只是 toast）
       if (totalMarks === 1 && state.mode === 'empty') {
         setTimeout(() => {
           const firstM = state.moments.find(m => m.id.startsWith('new-'));
           if (firstM) {
-            showToast('想说说为什么这一刻重要吗？点"说点什么"', 4000);
+            // 直接弹"说点什么"overlay（不只是提示）
+            openUpgrade(firstM.id);
           }
-        }, 800);
+        }, 1000);
       }
     }, 2200);
   }
