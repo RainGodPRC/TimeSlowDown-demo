@@ -1558,12 +1558,14 @@ if (isNative) {
     return `这一周你留了 ${sorted.length} 个瞬间：从${fmtDate(first.date)}到${fmtDate(last.date)}，它们各自不同，但放在一起，讲出了这一周。`;
   }
 
-  // v3.28 AI 编译（忠实编辑，保留用户原话）
+  // v3.28/v3.50 AI 编译（忠实编辑，OpenAI 兼容 API）
   async function compileWithAI(pickedMoments, userTitle, userNote) {
-    // 检查 AI 后端是否可用（Demo 阶段 API 未就绪 → 降级）
-    const API_URL = (typeof TSD_CONFIG !== 'undefined' && TSD_CONFIG.aiApiUrl) || null;
-    if (!API_URL) {
-      // 降级到增强版规则引擎（比 v3.8 更智能）
+    // v3.50: 检查 AI 配置（TSD_CONFIG 或环境变量）
+    const cfg = (typeof TSD_CONFIG !== 'undefined') ? TSD_CONFIG : {};
+    const API_URL = cfg.aiApiUrl || null;
+    const API_KEY = cfg.aiApiKey || '';
+    const API_MODEL = cfg.aiModel || 'deepseek-chat';
+    if (!API_URL || !API_KEY) {
       return compileWithSmartRules(pickedMoments, userTitle, userNote);
     }
 
@@ -1582,32 +1584,48 @@ if (isNative) {
       return parts.join('\n');
     }).join('\n---\n');
 
-    const prompt = `你是一个忠实的记忆编辑。下面是用户这周挑出的几个瞬间。请帮他把它们串成一段开篇（opening），要求：
-
+    const sysPrompt = `你是一个忠实的记忆编辑。你帮用户把一周的瞬间串成一段开篇。铁律：
 1. 只用用户自己的原话和事实——不补充合理细节，不猜人物内心
 2. 不使用比喻和抒情——除非用户自己用了
-3. 如果发现两个瞬间之间有隐含联系（比如同一个人、同一种情绪），可以点出
+3. 发现两个瞬间之间的隐含联系可以点出
 4. 语气要像用户自己在说话，不像 AI 在写
 5. 不超过 100 字
+6. 输出纯 JSON：{"opening":"开篇文字","body":["可选段落"]}`;
 
-用户给这一周起的名字："${userTitle}"
-${userNote ? `用户补充：${userNote}` : ''}
+    const userPrompt = `用户给这周起的名字："${userTitle}"
+${userNote ? `用户补充：${userNote}` : '（用户没有补充）'}
 
 素材：
-${素材}
+${素材}`;
 
-请输出 JSON 格式：{"opening": "开篇文字", "body": ["可选的正文段落，可为空数组"]}`;
-
+    // v3.50: OpenAI Chat Completions 兼容格式
     const response = await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, model: 'lite' }),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: API_MODEL,
+        messages: [
+          { role: 'system', content: sysPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 200,
+        response_format: { type: 'json_object' },
+      }),
     });
-    if (!response.ok) throw new Error('AI compile failed');
+    if (!response.ok) throw new Error('AI compile failed: ' + response.status);
     const data = await response.json();
+    // 解析 OpenAI 格式的 response
+    const content = data.choices?.[0]?.message?.content || '{}';
+    let parsed;
+    try { parsed = JSON.parse(content); }
+    catch(e) { parsed = { opening: content, body: [] }; }
     return {
-      opening: data.opening || compileWeekOpening(pickedMoments),
-      body: data.body || (userNote ? [userNote] : []),
+      opening: parsed.opening || compileWeekOpening(pickedMoments),
+      body: parsed.body || (userNote ? [userNote] : []),
     };
   }
 
