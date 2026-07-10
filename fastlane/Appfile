@@ -1,0 +1,2 @@
+app_identifier("app.tsd.timedown")
+# apple_id("your@email.com")  # 用环境变量 TSD_APPLE_ID 传入

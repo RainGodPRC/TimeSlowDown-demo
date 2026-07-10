@@ -1,0 +1,51 @@
+# TSD fastlane 流水线
+# 前置：装完整 Xcode + sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+# 一口气 Archive + 上传 TestFlight：  TSD_APPLE_ID=你@apple.com fastlane beta
+
+default_platform(:ios)
+
+IOS_WORKSPACE = "ios/App/App.xcworkspace"
+IOS_SCHEME = "App"
+
+platform :ios do
+  desc "同步 web 资产（www/）与 CocoaPods"
+  lane :sync do
+    sh("node scripts/build-www.cjs")
+    sh("npx cap sync ios")
+    Dir.chdir("ios/App") do
+      sh("pod install")
+    end
+  end
+
+  desc "Archive + 上传 TestFlight"
+  lane :beta do
+    sync
+    build_app(
+      workspace: IOS_WORKSPACE,
+      scheme: IOS_SCHEME,
+      export_method: "app-store",
+      output_directory: "./ios/build"
+    )
+    upload_to_testflight(
+      apple_id: ENV["TSD_APPLE_ID"],
+      skip_waiting_for_build_processing: true
+    )
+  end
+
+  desc "截图（需模拟器）"
+  lane :screenshots do
+    capture_ios_screenshots(workspace: IOS_WORKSPACE, scheme: IOS_SCHEME)
+  end
+
+  desc "上传 metadata（不自动提交审核）"
+  lane :metadata do
+    deliver(
+      app_identifier: "app.tsd.timedown",
+      metadata_path: "./fastlane/metadata",
+      screenshots_path: "./fastlane/screenshots",
+      skip_screenshots: true,
+      skip_binary_upload: true,
+      submit_for_review: false
+    )
+  end
+end
