@@ -3118,48 +3118,95 @@ ${素材}`;
   function renderMeadowSvg({ grass = 0, blooms = 0, height = 140, withStream = false }) {
     const w = 320;
     const h = height;
+    const uid = '_' + Math.random().toString(36).substring(2, 8);  // 唯一 ID 防 SVG defs 冲突
     let svg = `<svg class="meadow-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet">`;
 
-    // 天空渐变
-    svg += `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#faf0d8"/><stop offset="1" stop-color="#f3e3bf"/>
-    </linearGradient></defs>`;
-    svg += `<rect width="${w}" height="${h}" fill="url(#sky)"/>`;
+    // defs：渐变 + 滤镜
+    svg += `<defs>
+      <linearGradient id="sky${uid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#faf0d8"/><stop offset="0.6" stop-color="#f5e8c8"/><stop offset="1" stop-color="#f0dfb0"/>
+      </linearGradient>
+      <linearGradient id="ground${uid}" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#dcc99a" stop-opacity="0.6"/><stop offset="1" stop-color="#c4ad7a" stop-opacity="0.7"/>
+      </linearGradient>
+      <radialGradient id="sunglow${uid}" cx="0.78" cy="0.18" r="0.3">
+        <stop offset="0" stop-color="#fff3d0" stop-opacity="0.8"/><stop offset="1" stop-color="#fff3d0" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="soft${uid}"><feGaussianBlur stdDeviation="0.4"/></filter>
+    </defs>`;
+
+    // 天空
+    svg += `<rect width="${w}" height="${h}" fill="url(#sky${uid})"/>`;
+    // 太阳光晕
+    svg += `<rect width="${w}" height="${h}" fill="url(#sunglow${uid})"/>`;
 
     // 河流（时间导航）
     if (withStream) {
-      svg += `<path d="M 0 ${h*0.55} Q ${w/2} ${h*0.5} ${w} ${h*0.55} L ${w} ${h*0.62} Q ${w/2} ${h*0.57} 0 ${h*0.62} Z" fill="#bcd4d9" opacity="0.6"/>`;
-      svg += `<path d="M 0 ${h*0.55} Q ${w/2} ${h*0.5} ${w} ${h*0.55}" stroke="#8aafb8" stroke-width="0.5" fill="none" opacity="0.7"/>`;
+      svg += `<path d="M 0 ${h*0.55} Q ${w/2} ${h*0.5} ${w} ${h*0.55} L ${w} ${h*0.62} Q ${w/2} ${h*0.57} 0 ${h*0.62} Z" fill="#a8c8cf" opacity="0.5"/>`;
+      svg += `<path d="M 0 ${h*0.55} Q ${w/2} ${h*0.5} ${w} ${h*0.55}" stroke="#8aafb8" stroke-width="0.5" fill="none" opacity="0.6"/>`;
+      svg += `<path d="M ${w*0.3} ${h*0.545} Q ${w*0.35} ${h*0.535} ${w*0.4} ${h*0.548}" stroke="#d0e4e8" stroke-width="0.6" fill="none" opacity="0.7"/>`;
     }
 
-    // 远山
-    svg += `<path d="M 0 ${h*0.7} L ${w*0.2} ${h*0.55} L ${w*0.4} ${h*0.65} L ${w*0.6} ${h*0.5} L ${w*0.8} ${h*0.62} L ${w} ${h*0.55} L ${w} ${h} L 0 ${h} Z" fill="#c8b88a" opacity="0.4"/>`;
+    // 远山（双层增加深度）
+    svg += `<path d="M 0 ${h*0.72} L ${w*0.15} ${h*0.58} L ${w*0.35} ${h*0.66} L ${w*0.55} ${h*0.55} L ${w*0.75} ${h*0.62} L ${w} ${h*0.57} L ${w} ${h} L 0 ${h} Z" fill="#c8b88a" opacity="0.25"/>`;
+    svg += `<path d="M 0 ${h*0.75} L ${w*0.2} ${h*0.65} L ${w*0.4} ${h*0.7} L ${w*0.6} ${h*0.62} L ${w*0.8} ${h*0.68} L ${w} ${h*0.64} L ${w} ${h} L 0 ${h} Z" fill="#b8a87a" opacity="0.35"/>`;
 
-    // 地面
-    svg += `<rect y="${h*0.7}" width="${w}" height="${h*0.3}" fill="#d9c795" opacity="0.5"/>`;
+    // 地面（渐变）
+    svg += `<rect y="${h*0.7}" width="${w}" height="${h*0.3}" fill="url(#ground${uid})"/>`;
 
-    // 青草（每个瞬间一根草，包括 L0）
-    const grassCount = Math.min(grass, 30);
+    // 青草（每个瞬间一根草，包括 L0）—— 多层颜色增加丰富度
+    const grassCount = Math.min(grass, 35);
+    const grassColors = ['#7a9b6e', '#8ba888', '#6b8c5f', '#94b08a', '#85a578'];
     for (let i = 0; i < grassCount; i++) {
-      const gx = 20 + (i / Math.max(grassCount, 1)) * (w - 40) + (Math.sin(i * 2.7) * 8);
-      const gy = h * 0.85 + Math.cos(i * 1.3) * 6;
-      const gh = 8 + Math.abs(Math.sin(i * 0.9)) * 6;
-      svg += `<path d="M ${gx} ${gy} Q ${gx-1} ${gy-gh/2} ${gx} ${gy-gh}" stroke="#7a9b6e" stroke-width="1.2" fill="none" stroke-linecap="round"/>`;
-      svg += `<path d="M ${gx} ${gy} Q ${gx+1.5} ${gy-gh/2} ${gx+2} ${gy-gh+1}" stroke="#8ba888" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.7"/>`;
+      const gx = 15 + (i / Math.max(grassCount, 1)) * (w - 30) + (Math.sin(i * 2.7) * 10);
+      const gy = h * 0.86 + Math.cos(i * 1.3) * 8;
+      const gh = 7 + Math.abs(Math.sin(i * 0.9)) * 8;
+      const gc = grassColors[i % grassColors.length];
+      const sway = Math.sin(i * 1.7) * 1.5;  // 草尖轻微偏移
+      svg += `<path d="M ${gx} ${gy} Q ${gx+sway} ${gy-gh/2} ${gx+sway*0.5} ${gy-gh}" stroke="${gc}" stroke-width="1.3" fill="none" stroke-linecap="round" opacity="${0.7 + Math.sin(i*0.5)*0.2}"/>`;
+      // 第二片叶子
+      if (i % 2 === 0) {
+        svg += `<path d="M ${gx} ${gy} Q ${gx+2+sway} ${gy-gh*0.4} ${gx+3+sway} ${gy-gh*0.8}" stroke="${grassColors[(i+2) % grassColors.length]}" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.6"/>`;
+      }
     }
 
-    // 花（L1+ 才有）
-    const bloomCount = Math.min(blooms, 10);
+    // 花（L1+ 才有）—— 多色 + 花瓣
+    const bloomCount = Math.min(blooms, 12);
+    const flowerColors = [
+      { petal: '#e89aa5', center: '#fff5e0' },  // 粉
+      { petal: '#f0c674', center: '#e8a050' },  // 黄
+      { petal: '#c4a4d9', center: '#e8d5f0' },  // 紫
+      { petal: '#e88080', center: '#fff0f0' },  // 红
+      { petal: '#f5d76e', center: '#e8b84a' },  // 金
+    ];
     for (let i = 0; i < bloomCount; i++) {
-      const fx = 40 + (i / Math.max(bloomCount, 1)) * (w - 80) + Math.sin(i * 3.1) * 10;
-      const fy = h * 0.78 + Math.cos(i * 1.7) * 8;
-      // 茎
-      svg += `<line x1="${fx}" y1="${fy+8}" x2="${fx}" y2="${fy-4}" stroke="#5d7a5c" stroke-width="0.8"/>`;
-      // 花
-      svg += `<circle cx="${fx}" cy="${fy-4}" r="2.5" fill="#d97a85"/>`;
-      svg += `<circle cx="${fx}" cy="${fy-4}" r="0.8" fill="#fff" opacity="0.8"/>`;
+      const fx = 30 + (i / Math.max(bloomCount, 1)) * (w - 60) + Math.sin(i * 3.1) * 12;
+      const fy = h * 0.79 + Math.cos(i * 1.7) * 10;
+      const fc = flowerColors[i % flowerColors.length];
+      const sz = 2.5 + Math.abs(Math.sin(i * 2.1)) * 1.5;
+      // 茎（弯曲的更自然）
+      svg += `<path d="M ${fx} ${fy+10} Q ${fx-0.5} ${fy+3} ${fx} ${fy-2}" stroke="#5d7a5c" stroke-width="1" fill="none" stroke-linecap="round"/>`;
+      // 花瓣（5片围成圆）
+      for (let p = 0; p < 5; p++) {
+        const angle = (p / 5) * Math.PI * 2;
+        const px = fx + Math.cos(angle) * sz * 0.9;
+        const py = (fy-4) + Math.sin(angle) * sz * 0.9;
+        svg += `<ellipse cx="${px}" cy="${py}" rx="${sz*0.7}" ry="${sz*0.5}" fill="${fc.petal}" transform="rotate(${angle*180/Math.PI} ${px} ${py})" opacity="0.85"/>`;
+      }
+      // 花心
+      svg += `<circle cx="${fx}" cy="${fy-4}" r="${sz*0.4}" fill="${fc.center}"/>`;
       // 叶
-      svg += `<ellipse cx="${fx-2}" cy="${fy+2}" rx="1.5" ry="0.8" fill="#7a9b6e" transform="rotate(-30 ${fx-2} ${fy+2})"/>`;
+      svg += `<ellipse cx="${fx-2.5}" cy="${fy+4}" rx="2" ry="1" fill="#7a9b6e" transform="rotate(-35 ${fx-2.5} ${fy+4})" opacity="0.8"/>`;
+    }
+
+    // 蝴蝶（有花时偶尔出现一只）
+    if (bloomCount >= 2) {
+      const bx = w * 0.55, by = h * 0.35;
+      svg += `<g transform="translate(${bx} ${by})" opacity="0.7">`;
+      svg += `<ellipse cx="-3" cy="0" rx="3.5" ry="2.5" fill="#e89aa5" opacity="0.6" transform="rotate(-20 -3 0)"/>`;
+      svg += `<ellipse cx="3" cy="0" rx="3.5" ry="2.5" fill="#e89aa5" opacity="0.6" transform="rotate(20 3 0)"/>`;
+      svg += `<line x1="0" y1="-2" x2="0" y2="3" stroke="#6b5a4a" stroke-width="0.8"/>`;
+      svg += `</g>`;
     }
 
     svg += `</svg>`;

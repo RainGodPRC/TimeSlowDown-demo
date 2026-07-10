@@ -269,6 +269,10 @@ html, body {
   transform: translateY(-2px);
   box-shadow: var(--shadow-lg);
 }
+.told-card:active {
+  transform: scale(0.98);
+  transition: transform 0.1s;
+}
 
 /* 大照片在上（第一个 told 卡片用大图）*/
 .told-card .told-hero-img {
@@ -394,6 +398,10 @@ html, body {
   border-color: var(--moss-soft);
   box-shadow: var(--shadow-sm);
   transform: translateX(2px);
+}
+.untold-card:active {
+  transform: scale(0.97);
+  transition: transform 0.1s;
 }
 .untold-thumb {
   width: 56px; height: 56px; border-radius: var(--r-sm);
@@ -548,16 +556,22 @@ html, body {
 
 /* 旷野视觉（SVG 地貌） */
 .meadow-canvas {
-  background: var(--bg-meadow);
+  background: linear-gradient(180deg, var(--bg-meadow) 0%, #f0e4cc 100%);
   border-radius: var(--r-lg);
   padding: 20px;
   min-height: 360px;
   position: relative;
   overflow: hidden;
   border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
 }
 .meadow-svg {
   width: 100%; display: block;
+  animation: meadowFadeIn 0.8s var(--ease-out) both;
+}
+@keyframes meadowFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .meadow-summary {
@@ -910,17 +924,23 @@ html, body {
   background: none; border: none;
   display: flex; flex-direction: column; align-items: center; gap: 3px;
   cursor: pointer; color: var(--ink-faint); padding: 4px 12px;
-  transition: color 0.2s; flex: 1;
+  transition: all 0.2s var(--ease-spring); flex: 1;
+  -webkit-tap-highlight-color: transparent;
 }
+.tab:active { transform: scale(0.88); }
 .tab.active { color: var(--amber); }
-.tab-icon { font-size: 20px; line-height: 1; }
+.tab.active .tab-icon { transform: scale(1.1); transition: transform 0.3s var(--ease-spring); }
+.tab-icon { font-size: 20px; line-height: 1; transition: transform 0.2s; }
 .tab-label { font-size: 10px; letter-spacing: 0.5px; }
 .tab-add {
   flex: 0 0 48px; height: 48px;
-  background: var(--amber); color: #fff;
+  background: linear-gradient(135deg, var(--amber) 0%, var(--amber-deep) 100%);
+  color: #fff;
   border-radius: 50%; margin-top: -22px;
-  box-shadow: 0 4px 12px rgba(200, 135, 60, 0.4);
+  box-shadow: 0 4px 16px rgba(200, 135, 60, 0.45), 0 2px 6px rgba(200, 135, 60, 0.3);
+  transition: all 0.2s var(--ease-spring);
 }
+.tab-add:active { transform: scale(0.88) rotate(45deg); }
 .tab-add .tab-icon { font-size: 26px; font-weight: 300; }
 
 /* ============ 设置（最简） ============ */
@@ -1141,17 +1161,20 @@ html, body {
 /* onboarding 按钮 */
 .onb-cta {
   width: 100%;
-  background: var(--amber); color: #fff;
+  background: linear-gradient(135deg, var(--amber) 0%, var(--amber-deep) 100%);
+  color: #fff;
   border: none;
   padding: 16px;
-  border-radius: var(--r-md);
-  font-family: var(--font-sans); font-size: 16px; font-weight: 500;
+  border-radius: var(--r-lg);
+  font-family: var(--font-serif); font-size: 17px; font-weight: 600;
+  letter-spacing: 0.5px;
   cursor: pointer;
-  box-shadow: 0 6px 16px rgba(200, 135, 60, 0.35);
-  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 8px 24px rgba(200, 135, 60, 0.4), 0 2px 8px rgba(200, 135, 60, 0.25);
+  transition: all 0.25s var(--ease-spring);
+  -webkit-tap-highlight-color: transparent;
 }
-.onb-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(200, 135, 60, 0.45); }
-.onb-cta:active { transform: translateY(0); }
+.onb-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(200, 135, 60, 0.5); }
+.onb-cta:active { transform: scale(0.97); transition: transform 0.1s; }
 
 .onb-skip {
   display: block;
