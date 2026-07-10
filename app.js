@@ -97,6 +97,7 @@ if (isNative) {
     weekSkipped: false,
     scanDisabled: false,       // v3.6 反 streak：用户关掉今晚扫描
     scanIgnoredToday: false,   // v3.6 反 streak：用户当日已忽略
+    quietMode: false,          // v3.46 借鉴 Claude Code：安静模式（隐藏成就/印记/hook）
     archiveQuery: '',          // v3.10 搜索
     archiveView: 'list',       // v3.14 list | wall | map
     selectedWeather: 'plain',  // v3.10 情绪天气
@@ -831,7 +832,7 @@ if (isNative) {
         if (daysSince >= 0) {
           html.push(`<div class="days-counter">已陪你 ${daysSince + 1} 天</div>`);
           const milestone = WELCOME_MILESTONES[daysSince + 1];
-          if (milestone) {
+          if (milestone && !state.quietMode) {
             html.push(`<div class="welcome-milestone">${escapeHtml(milestone)}</div>`);
           }
 
@@ -1054,7 +1055,8 @@ if (isNative) {
       return m && !m.toldAt;
     });
     if (relevantQs.length > 0) {
-      html.push('<div class="ai-help-section"><div class="section-label">不知道怎么开头？</div><div class="ai-questions">');
+      // v3.46 借鉴 Claude Code: disclosure 分层展开（减少信息过载）
+      html.push('<details class="tsd-disclosure"><summary>不知道怎么开头？</summary><div class="ai-help-section-inner"><div class="ai-questions">');
       relevantQs.forEach(q => {
         const m = getMoment(q.forMomentId);
         html.push(`
@@ -1066,7 +1068,7 @@ if (isNative) {
       });
       html.push('</div>');
       html.push('<button class="opening-template-btn" id="opening-template-btn">💬 给我一个开头</button>');
-      html.push('</div>');
+      html.push('</div></details>');
     }
 
     // 周末章节入口（D 论点核心：让用户亲自编译本周）
@@ -3692,6 +3694,7 @@ ${素材}
               <header class="view-header"><div class="view-title">设置</div></header>
               <div class="setting-group">
                 <div class="setting-row"><span>今晚扫描</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="scan-toggle">${state.scanDisabled ? '已关闭 · 点此开启' : '已开启 · 点此关闭'}</span></div>
+                <div class="setting-row"><span>安静模式</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="quiet-toggle">${state.quietMode ? '已开启 · 隐藏成就/印记' : '未开启 · 点此开启'}</span></div>
                 <div class="setting-row"><span>朴素模式</span><span style="font-size:11px;color:var(--ink-soft)">${state.plainMode ? '已开启' : '未开启'}（点顶部 🌿/📜 切换）</span></div>
               </div>
               <div class="setting-group">
@@ -3722,6 +3725,12 @@ ${素材}
             if (st) st.addEventListener('click', () => {
               state.scanDisabled = !state.scanDisabled;
               st.textContent = state.scanDisabled ? '已关闭 · 点此开启' : '已开启 · 点此关闭';
+            });
+            // v3.46 安静模式
+            const qt = v.querySelector('#quiet-toggle');
+            if (qt) qt.addEventListener('click', () => {
+              state.quietMode = !state.quietMode;
+              qt.textContent = state.quietMode ? '已开启 · 隐藏成就/印记' : '未开启 · 点此开启';
             });
             const dl = v.querySelector('#demo-link');
             if (dl) dl.addEventListener('click', () => {
@@ -4250,7 +4259,8 @@ ${素材}
     } catch(e) { return []; }
   }
   function checkMilestones() {
-    if (state.mode !== 'empty') return;  // 只在 empty mode（用户真实使用）检测
+    if (state.mode !== 'empty') return;
+    if (state.quietMode) return;  // v3.46 安静模式：不弹印记
     const earned = new Set(getEarnedMilestones());
     const newlyEarned = [];
     for (const ms of LIFE_MILESTONES) {

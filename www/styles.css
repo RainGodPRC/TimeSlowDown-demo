@@ -3962,3 +3962,37 @@ button:active:not(:disabled) {
   font-size: 11px; color: var(--ink-faint);
   margin-top: 8px; font-style: italic;
 }
+
+/* v3.46 借鉴 Claude Code: disclosure 分层展开 */
+.tsd-disclosure {
+  margin: 16px 0;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  background: var(--bg-paper);
+}
+.tsd-disclosure summary {
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  -webkit-user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tsd-disclosure summary::before {
+  content: '▸';
+  font-size: 10px;
+  color: var(--ink-faint);
+  transition: transform 0.2s;
+}
+.tsd-disclosure[open] summary::before {
+  transform: rotate(90deg);
+}
+.tsd-disclosure summary::-webkit-details-marker { display: none; }
+.ai-help-section-inner {
+  padding: 0 14px 12px;
+}
