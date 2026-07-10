@@ -3996,3 +3996,40 @@ button:active:not(:disabled) {
 .ai-help-section-inner {
   padding: 0 14px 12px;
 }
+
+/* v3.49 认领门 + 时间层叠 */
+.wc-pick-item.recommended {
+  border-color: var(--amber);
+  background: linear-gradient(135deg, rgba(253,246,232,0.6), rgba(245,230,200,0.3));
+}
+.wc-pick-rec {
+  font-size: 10px;
+  color: var(--amber-deep);
+  font-style: italic;
+  margin-top: 3px;
+}
+.timeline-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.tl-layer {
+  display: flex;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--bg-warm);
+  border-radius: var(--r-xs);
+  border-left: 2px solid var(--moss-soft);
+}
+.tl-date {
+  font-size: 10px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  padding-top: 1px;
+}
+.tl-text {
+  font-size: 12px;
+  color: var(--ink-soft);
+  line-height: 1.5;
+}

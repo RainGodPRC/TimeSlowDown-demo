@@ -1415,24 +1415,30 @@ if (isNative) {
       <div class="upgrade-body">
         <div class="flow-prompt-banner">${escapeHtml(FLOW_PROMPTS.chapterStart)}</div>
         <div class="wc-step" id="wc-step-1">
-          <div class="compose-section-label">第 1 步 · 从本周瞬间里挑 2-3 个</div>
+          <div class="compose-section-label">第 1 步 · 从本周瞬间里认领你的故事</div>
           <p style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;line-height:1.7">${escapeHtml(FLOW_PROMPTS.chapterPicking)}</p>
           <div class="wc-pick-list" id="wc-pick-list">
-            ${weekMoments.map(m => {
-              const mood = MOODS[m.mood];
-              return `
-                <div class="wc-pick-item" data-id="${m.id}">
-                  <div class="wc-pick-check"></div>
-                  ${m.image ? `<img class="wc-pick-thumb" src="${m.image}" alt=""/>` : '<div class="wc-pick-thumb-empty"></div>'}
-                  <div class="wc-pick-body">
-                    <div class="wc-pick-text">${mood.emoji} ${escapeHtml(m.text)}</div>
-                    <div class="wc-pick-meta">${fmtDate(m.date)}${m.people && m.people.length ? ' · ' + m.people.map(escapeHtml).join('、') : ''}</div>
+            ${(() => {
+              // v3.49 DNA 融合：Codex 认领门——AI 推荐排序 + 标记推荐
+              const scored = weekMoments.map(m => ({ m, ...scoreTellingValue(m) })).sort((a, b) => b.score - a.score);
+              return scored.map(({ m, score, reasons }, idx) => {
+                const mood = MOODS[m.mood];
+                const isRecommended = idx < 3 && score >= 20;  // 前 3 且分数够高 = 推荐
+                return `
+                  <div class="wc-pick-item ${isRecommended ? 'recommended' : ''}" data-id="${m.id}">
+                    <div class="wc-pick-check"></div>
+                    ${m.image ? `<img class="wc-pick-thumb" src="${m.image}" alt=""/>` : '<div class="wc-pick-thumb-empty"></div>'}
+                    <div class="wc-pick-body">
+                      <div class="wc-pick-text">${mood.emoji} ${escapeHtml(m.text)}</div>
+                      <div class="wc-pick-meta">${fmtDate(m.date)}${m.people && m.people.length ? ' · ' + m.people.map(escapeHtml).join('、') : ''}</div>
+                      ${isRecommended ? `<div class="wc-pick-rec">✨ TSD 觉得这个有故事感${reasons.length ? '：' + reasons.join('、') : ''}</div>` : ''}
+                    </div>
                   </div>
-                </div>
-              `;
-            }).join('')}
+                `;
+              }).join('');
+            })()}
           </div>
-          <button class="upgrade-btn" id="wc-next-1" disabled>挑好了（0）</button>
+          <button class="upgrade-btn" id="wc-next-1" disabled>认领好了（0）</button>
         </div>
 
         <div class="wc-step" id="wc-step-2" style="display:none">
@@ -3367,6 +3373,13 @@ ${素材}
           <span>这是我的一个「第一次」</span>
         </label>
         <button class="upgrade-btn" id="edit-save">保存修改</button>
+        ${m.revisits && m.revisits.length > 0 ? `
+          <div class="compose-section-label" style="margin-top:18px">这一刻的回望记录（时间层叠）</div>
+          <div class="timeline-layers">
+            ${m.revisits.map((r, i) => `<div class="tl-layer"><span class="tl-date">${fmtDate(r.at)}</span><span class="tl-text">${escapeHtml(r.text)}</span></div>`).join('')}
+          </div>
+          <p class="upgrade-hint">每次你重新看到这一刻，都会追加一层感受。</p>
+        ` : ''}
         <p class="upgrade-hint">改完不影响它已经讲过的故事——那部分是你的。</p>
       </div>
     `;
