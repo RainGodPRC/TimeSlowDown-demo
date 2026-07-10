@@ -60,6 +60,37 @@
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* ============================================================
+   Dark Mode — 暖夜主题（不是冷黑，保持 TSD 的温度）
+   ============================================================ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1612;
+    --bg-warm: #251f18;
+    --bg-paper: #2a241d;
+    --bg-meadow: linear-gradient(180deg, #1e1a15 0%, #2a2419 100%);
+
+    --ink: #e8dfd0;
+    --ink-soft: #a89e8c;
+    --ink-faint: #6b6356;
+
+    --amber: #d99a52;
+    --amber-soft: #5a4428;
+    --amber-deep: #e8b478;
+
+    --moss: #7a9b6e;
+    --moss-soft: #3a4a34;
+
+    --line: #3a3328;
+    --line-soft: #2e281e;
+
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25), 0 1px 2px rgba(0, 0, 0, 0.15);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3), 0 2px 6px rgba(0, 0, 0, 0.2);
+    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.25);
+  }
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
@@ -438,7 +469,7 @@ html, body {
   font-size: 13px; line-height: 1.6;
   color: var(--ink); font-style: italic;
   padding: 10px 12px;
-  background: #fff;
+  background: var(--bg-paper);
   border-radius: var(--r-sm);
   border-left: 3px solid var(--moss);
 }
@@ -525,7 +556,7 @@ html, body {
   border-radius: 6px; font-family: var(--font-sans);
   transition: background 0.2s, color 0.2s;
 }
-.zoom-pill.active { background: #fff; color: var(--ink); box-shadow: 0 1px 3px var(--shadow); }
+.zoom-pill.active { background: var(--bg-paper); color: var(--ink); box-shadow: 0 1px 3px var(--shadow); }
 
 .meadow-semantic {
   padding: 0 22px 12px;
@@ -540,7 +571,7 @@ html, body {
 .plain-list { display: flex; flex-direction: column; gap: 10px; }
 .plain-row {
   display: flex; gap: 10px;
-  background: #fff; padding: 12px;
+  background: var(--bg-paper); padding: 12px;
   border-radius: var(--r-md); border: 1px solid var(--line);
   box-shadow: 0 1px 3px var(--shadow);
 }
@@ -577,7 +608,7 @@ html, body {
 .meadow-summary {
   margin-top: 16px;
   padding: 14px 16px;
-  background: #fff;
+  background: var(--bg-paper);
   border-radius: var(--r-md);
   border: 1px solid var(--line);
   font-size: 12px; line-height: 1.7;
@@ -587,7 +618,7 @@ html, body {
 
 /* 月/年/十年/一生 的章节卡 */
 .chapter-card {
-  background: #fff;
+  background: var(--bg-paper);
   border-radius: var(--r-md);
   padding: 18px;
   margin-bottom: 14px;
@@ -620,7 +651,7 @@ html, body {
   margin: 12px 0;
 }
 .life-cell {
-  aspect-ratio: 1; background: #fff; border-radius: 1px;
+  aspect-ratio: 1; background: var(--bg-paper); border-radius: 1px;
 }
 .life-cell.filled { background: var(--amber); }
 .life-cell.filled-deep { background: var(--moss); }
@@ -634,7 +665,7 @@ html, body {
 }
 .archive-scroll { flex: 1; overflow-y: auto; padding: 0 22px 110px; }
 .archive-card {
-  background: #fff; border-radius: var(--r-md);
+  background: var(--bg-paper); border-radius: var(--r-md);
   overflow: hidden; margin-bottom: 10px;
   border: 1px solid var(--line); box-shadow: 0 1px 3px var(--shadow);
 }
@@ -769,7 +800,7 @@ html, body {
 }
 .upgrade-moment {
   margin-bottom: 18px;
-  padding: 12px; background: #fff;
+  padding: 12px; background: var(--bg-paper);
   border-radius: var(--r-md); border: 1px solid var(--line);
 }
 .upgrade-moment img {
@@ -779,7 +810,7 @@ html, body {
 .upgrade-moment-text { font-size: 13px; color: var(--ink); line-height: 1.5; }
 
 .upgrade-why {
-  width: 100%; border: 1px solid var(--line); background: #fff;
+  width: 100%; border: 1px solid var(--line); background: var(--bg-paper);
   font-family: var(--font-sans); font-size: 15px; line-height: 1.6;
   color: var(--ink); resize: none; outline: none;
   padding: 10px; border-radius: var(--r-sm); margin-bottom: 16px;
@@ -820,7 +851,7 @@ html, body {
 .opening-template-display {
   font-family: var(--font-serif); font-size: 16px; line-height: 2;
   color: var(--ink); padding: 14px;
-  background: #fff; border-radius: var(--r-sm);
+  background: var(--bg-paper); border-radius: var(--r-sm);
   margin-bottom: 12px;
 }
 .opening-hint {
@@ -946,7 +977,7 @@ html, body {
 /* ============ 设置（最简） ============ */
 .view-settings .setting-group {
   margin: 14px 22px;
-  background: #fff; border-radius: var(--r-md);
+  background: var(--bg-paper); border-radius: var(--r-md);
   border: 1px solid var(--line); overflow: hidden;
 }
 .view-settings .setting-row {
@@ -1083,7 +1114,7 @@ html, body {
 }
 .onb-day {
   padding: 10px 14px;
-  background: #fff;
+  background: var(--bg-paper);
   border-radius: 10px;
   border: 1px solid var(--line);
   font-size: 12px;
@@ -1329,7 +1360,7 @@ html, body {
 .onb-visual-story {
   width: 100%;
   max-width: 260px;
-  background: linear-gradient(160deg, #fff 0%, #faf3e3 100%);
+  background: linear-gradient(160deg, var(--bg-paper) 0%, var(--bg-warm) 100%);
   border: 1px solid var(--amber-soft);
   border-radius: 14px;
   padding: 18px;
@@ -1385,7 +1416,7 @@ html, body {
   width: 60px;
   padding: 4px 6px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--bg-paper);
   border-radius: 4px;
   font-family: var(--font-sans);
   font-size: 14px;
@@ -1404,7 +1435,7 @@ html, body {
   display: grid;
   grid-template-columns: repeat(52, 1fr);
   gap: 1px;
-  background: #fff;
+  background: var(--bg-paper);
   padding: 6px;
   border-radius: 4px;
   border: 1px solid var(--line);
@@ -1414,7 +1445,7 @@ html, body {
   aspect-ratio: 52 / 80;
 }
 .onb-a4-cell {
-  background: #fff;
+  background: var(--bg-paper);
   border-radius: 0.5px;
 }
 /* 已度过的格子：深色（残缺感） */
@@ -1509,7 +1540,7 @@ html, body {
 }
 .onb-a4-cell.future {
   /* 未来：白 */
-  background: #fff;
+  background: var(--bg-paper);
   opacity: 1;
 }
 .onb-a4-cell.now {
@@ -1577,7 +1608,7 @@ html, body {
   margin-bottom: 22px;
 }
 .compare-half {
-  background: #fff;
+  background: var(--bg-paper);
   border-radius: 12px;
   padding: 14px 10px;
   border: 1px solid var(--line);
@@ -1617,7 +1648,7 @@ html, body {
 .compare-quote b { color: var(--amber-deep); font-style: normal; }
 
 .compare-story {
-  background: linear-gradient(160deg, #fff 0%, #faf3e3 100%);
+  background: linear-gradient(160deg, var(--bg-paper) 0%, var(--bg-warm) 100%);
   border: 1px solid var(--amber-soft);
   border-radius: 14px;
   padding: 18px;
@@ -1680,7 +1711,7 @@ html, body {
   opacity: 1 !important;
 }
 .onb-a4-grid .onb-a4-cell.future {
-  background: #fff !important;
+  background: var(--bg-paper) !important;
   opacity: 1 !important;
   border: 0.5px solid #f0e8d5;           /* 给白格淡淡的边框，让"格子感"出来 */
 }
@@ -1831,7 +1862,7 @@ html, body {
   display: flex;
   gap: 10px;
   align-items: center;
-  background: #fff;
+  background: var(--bg-paper);
   padding: 10px 12px;
   border-radius: var(--r-sm);
   border: 1px solid var(--line);
@@ -1963,7 +1994,7 @@ html, body {
   display: flex;
   gap: 10px;
   align-items: center;
-  background: #fff;
+  background: var(--bg-paper);
   padding: 10px 12px;
   border-radius: var(--r-sm);
   border: 2px solid var(--line);
@@ -1972,7 +2003,7 @@ html, body {
 }
 .wc-pick-item.picked {
   border-color: var(--amber);
-  background: #fff9ed;
+  background: var(--bg-warm);
 }
 .wc-pick-check {
   width: 22px;
@@ -2029,7 +2060,7 @@ html, body {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--bg-paper);
   border-radius: var(--r-sm);
   font-family: var(--font-serif);
   font-size: 17px;
@@ -2041,7 +2072,7 @@ html, body {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--bg-paper);
   border-radius: var(--r-sm);
   font-family: var(--font-sans);
   font-size: 14px;
@@ -2086,7 +2117,7 @@ html, body {
 }
 .chapter-card.uncompiled { border-style: dashed; }
 .chapter-card.season {
-  background: linear-gradient(160deg, #fff 0%, #faf3e3 100%);
+  background: linear-gradient(160deg, var(--bg-paper) 0%, var(--bg-warm) 100%);
   border-color: var(--amber-soft);
 }
 
@@ -2149,7 +2180,7 @@ html, body {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--bg-paper);
   border-radius: var(--r-sm);
   font-family: var(--font-sans);
   font-size: 14px;
@@ -2201,7 +2232,7 @@ html, body {
 .people-card {
   display: flex;
   gap: 14px;
-  background: #fff;
+  background: var(--bg-paper);
   padding: 14px;
   border-radius: var(--r-md);
   border: 1px solid var(--line);
@@ -2244,7 +2275,7 @@ html, body {
 /* 主题镜头 */
 .theme-lens { display: flex; flex-direction: column; gap: 12px; }
 .theme-card {
-  background: #fff;
+  background: var(--bg-paper);
   border-radius: var(--r-md);
   border: 1px solid var(--line);
   border-left: 3px solid var(--amber);
@@ -2319,7 +2350,7 @@ html, body {
   width: 100%;
   padding: 10px 14px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--bg-paper);
   border-radius: 20px;
   font-family: var(--font-sans);
   font-size: 14px;
@@ -2505,7 +2536,7 @@ button:active:not(:disabled) {
   line-height: 1;
 }
 .archive-view-pill.active {
-  background: #fff;
+  background: var(--bg-paper);
   color: var(--amber-deep);
   box-shadow: var(--shadow-xs);
 }
@@ -3258,7 +3289,7 @@ button:active:not(:disabled) {
   margin: 12px auto;
   display: block;
   border-radius: var(--r-xs);
-  background: #fff;
+  background: var(--bg-paper);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
 }
