@@ -1326,6 +1326,24 @@ if (isNative) {
             <div class="ma-item"><span class="ma-num">${earnedMs.length}</span><span class="ma-label">印记</span></div>
             <div class="ma-item"><span class="ma-num">${Object.keys(WEEK_CHAPTERS).filter(k => k >= '2026-W27').length}</span><span class="ma-label">章节</span></div>
           </div>
+          ${(() => {
+            // v3.61 90 天可讲述进度（借鉴 Codex 北极星指标）
+            // "可讲述"= 有 why（为什么重要）的瞬间
+            const tellable = totalActive.filter(m => m.why && m.why.length >= 5);
+            const target = 5;  // 三个月承诺基线
+            const pct = Math.min(100, Math.round((tellable.length / target) * 100));
+            const dots = Array.from({length: target}, (_, i) => i < tellable.length ? '●' : '○').join(' ');
+            return `
+              <div class="ma-tellable-progress">
+                <div class="ma-tp-header">
+                  <span class="ma-tp-label">90 天 · 能讲出来的瞬间</span>
+                  <span class="ma-tp-count">${tellable.length}/${target}</span>
+                </div>
+                <div class="ma-tp-dots">${dots}</div>
+                <div class="ma-tp-hint">${pct >= 100 ? '你已经有一组能讲起的故事了。' : pct >= 60 ? '再多几个，90 天会更好讲。' : '继续留——每一个"为什么重要"都算。'}</div>
+              </div>
+            `;
+          })()}
           <button class="ma-share-btn" id="ma-share-btn">📸 生成月度回顾长图</button>
           <button class="ma-gift-btn" id="ma-gift-btn">💌 送给在乎的人</button>
         </div>
