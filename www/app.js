@@ -4386,7 +4386,7 @@ ${素材}`;
           <p class="info-para">谢谢你愿意帮 TSD 变得更好。</p>
           <textarea class="feedback-input" id="feedback-input" placeholder="一句话也行：哪里好用？哪里别扭？最想要什么？" rows="5"></textarea>
           <button class="upgrade-btn" id="feedback-submit">提交反馈</button>
-          <p class="info-para" style="color:var(--ink-faint);font-size:11px;margin-top:14px">Demo 阶段：反馈仅本地保存，不会发送到任何服务器。</p>
+          <p class="info-para" style="color:var(--ink-faint);font-size:11px;margin-top:14px">反馈仅保存在你的设备上，不会发送到任何服务器。</p>
         `,
       },
     };
@@ -4583,6 +4583,19 @@ ${素材}`;
     // v3.25 原生通知注册（Capacitor 环境下，用户已不关闭扫描时）
     if (isNative && CapacitorLN && state.mode === 'empty') {
       setupNativeNotifications();
+    }
+
+    // v3.60: iOS 键盘弹出时自动调整——输入框不被遮挡
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        const active = document.activeElement;
+        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+          // 延迟一帧让布局稳定
+          requestAnimationFrame(() => {
+            active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          });
+        }
+      });
     }
   }
 
