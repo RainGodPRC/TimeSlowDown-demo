@@ -202,7 +202,7 @@ const ONBOARDING = {
       eyebrow: 'TSD 想做的事',
       headline: '三个月后，\n你能讲出 5–10 个\n鲜明的瞬间。',
       sub: '不是记日记，不是相册。\n只在某个瞬间划一下重点，\nTSD 帮你回头讲得出。',
-      socialProof: '已有很多人开始用 TSD 对抗时间飞逝。\n你不会是唯一一个。',
+      socialProof: '你不会是唯一一个想留住时间的人。\n试试看——第一个瞬间只需要 5 秒。',
       visual: 'story',
       cta: '想试试',
       skipText: null,
