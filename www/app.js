@@ -3836,6 +3836,7 @@ ${素材}`;
               </div>
               <div class="setting-group">
                 <div class="setting-row"><span>导出我的记忆数据</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="export-link">JSON ›</span></div>
+                <div class="setting-row"><span>导入记忆数据</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="import-link">从备份恢复 ›</span></div>
                 <div class="setting-row"><span>收起的瞬间</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="archived-link">恢复 / 删除 ›</span></div>
                 <div class="setting-row"><span>反馈 / 建议</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="feedback-link">写一句 ›</span></div>
                 <div class="setting-row"><span>隐私政策</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="privacy-link">查看 ›</span></div>
@@ -3845,7 +3846,7 @@ ${素材}`;
                 <div class="setting-row"><span>人生印记</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="milestones-link">查看 ›</span></div>
                 <div class="setting-row"><span>锚点效果数据</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="analytics-link">查看 ›</span></div>
                 <div class="setting-row"><span>关于 TSD</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="about-link">查看 ›</span></div>
-                <div class="setting-row"><span>版本</span><span style="font-size:11px;color:var(--ink-soft)">v3.19 Demo</span></div>
+                <div class="setting-row"><span>版本</span><span style="font-size:11px;color:var(--ink-soft)">v3.58</span></div>
               </div>
               <div class="setting-group">
                 <div class="setting-row"><span>设计者：看示例数据</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="demo-link">陈雨三个月 ›</span></div>
@@ -3900,6 +3901,9 @@ ${素材}`;
             // v3.8 合规项
             const el = v.querySelector('#export-link');
             if (el) el.addEventListener('click', exportMyData);
+            // v3.59 数据导入
+            const il = v.querySelector('#import-link');
+            if (il) il.addEventListener('click', importMyData);
             const fl = v.querySelector('#feedback-link');
             if (fl) fl.addEventListener('click', () => showInfoOverlay('feedback'));
             const pl = v.querySelector('#privacy-link');
@@ -4157,7 +4161,56 @@ ${素材}`;
     showToast('已导出 JSON 备份');
   }
 
-  // v3.12 彻底清除（带二次确认）
+  // v3.59 数据导入（从 JSON 备份恢复）
+  function importMyData() {
+    const fi = document.createElement('input');
+    fi.type = 'file';
+    fi.accept = '.json,application/json';
+    fi.style.display = 'none';
+    fi.onchange = ev => {
+      const file = ev.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async evt => {
+        try {
+          const data = JSON.parse(evt.target.result);
+          if (data.schema !== 'tsd-memory-package') {
+            showToast('文件格式不正确');
+            return;
+          }
+          // 恢复 moments
+          if (data.moments && Array.isArray(data.moments)) {
+            // 合并：不覆盖已有的同 ID 瞬间
+            const existingIds = new Set(state.moments.map(m => m.id));
+            const newOnes = data.moments.filter(m => !existingIds.has(m.id));
+            state.moments = [...newOnes, ...state.moments];
+            showToast(`已导入 ${newOnes.length} 个瞬间`);
+          }
+          // 恢复 chapters
+          if (data.weekChapters) {
+            for (const [k, v] of Object.entries(data.weekChapters)) {
+              if (k >= todayStr().substring(0, 7)) WEEK_CHAPTERS[k] = v;
+            }
+          }
+          // 恢复 months
+          if (data.monthLandscapes) {
+            for (const [k, v] of Object.entries(data.monthLandscapes)) {
+              if (v.userNamed) MONTH_LANDSCAPES[k] = v;
+            }
+          }
+          saveMoments();
+          renderTell();
+          document.body.removeChild(fi);
+        } catch(e) {
+          showToast('导入失败：文件损坏或格式错误');
+          document.body.removeChild(fi);
+        }
+      };
+      reader.readAsText(file);
+    };
+    document.body.appendChild(fi);
+    fi.click();
+  }
   function wipeAllData() {
     const ov = document.getElementById('upgrade-overlay');
     const card = ov.querySelector('.upgrade-card');
@@ -4299,14 +4352,14 @@ ${素材}`;
           <p class="info-para">TSD（Time Slow Down）帮助感觉时间飞逝的人，把模糊经过的日子重新长成可回忆、可讲述、可分享的人生。</p>
           <p class="info-para"><b>三个月承诺</b>：连续使用三个月后，你能不费力地讲出 5-10 个鲜明瞬间——发生了什么、和谁有关、为什么重要。</p>
           <p class="info-para"><b>核心信念</b>：记录只是原料，故事和回忆才是交付物。每周一次亲自编译，让一周不再消失。</p>
-          <p class="info-para" style="color:var(--ink-faint);font-size:12px">v3.8 Demo · ZCode 分支 · 2026-07-05<br/>遵循 Product Soul v1</p>
+          <p class="info-para" style="color:var(--ink-faint);font-size:12px">v3.58 · 2026-07-11<br/>遵循 Product Soul v1 · 无广告 · 无 streak · 无 FOMO</p>
         `,
       },
       privacy: {
         title: '隐私政策',
         body: `
           <p class="info-para"><b>你的记忆，归你所有。</b></p>
-          <p class="info-para">本 Demo 所有数据存储在你的浏览器（localStorage），不上传任何服务器。点击"导出"可随时下载 JSON 备份；点击"重置"会永久清除所有数据。</p>
+          <p class="info-para">所有数据存储在你的设备上（IndexedDB + localStorage），不上传任何服务器。点击"导出"可随时下载 JSON 备份；点击"彻底清除"会永久删除所有数据。</p>
           <p class="info-para"><b>未来生产版本将遵循</b>：</p>
           <ul class="info-list">
             <li>本地优先，设备内加密为第一落点</li>
