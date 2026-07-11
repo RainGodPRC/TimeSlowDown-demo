@@ -913,6 +913,75 @@ if (isNative) {
       }
     }
 
+    // v3.61 昨日回声（借鉴 Codex 回访分支 + Claude Code 提取练习）
+    // 不依赖"今天有不同"——平淡日也能带回旧瞬间重温
+    if (state.mode === 'empty' && !state.quietMode) {
+      const allUserMoments = state.moments.filter(m => !m.archived && m.id.startsWith('new-'));
+      if (allUserMoments.length >= 2) {
+        // 找一个非今天的旧瞬间（优先昨天，否则随机一个）
+        const yesterday = new Date(TODAY.getTime() - 24*60*60*1000);
+        const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth()+1).padStart(2,'0')}-${String(yesterday.getDate()).padStart(2,'0')}`;
+        let echoMoment = allUserMoments.find(m => m.date === yesterdayStr);
+        if (!echoMoment) {
+          // 随机选一个 3+ 天前的
+          const oldOnes = allUserMoments.filter(m => {
+            const d = parseDate(m.date);
+            const diff = (TODAY.getTime() - d.getTime()) / (24*60*60*1000);
+            return diff >= 2;
+          });
+          if (oldOnes.length > 0) {
+            echoMoment = oldOnes[Math.floor(Math.random() * oldOnes.length)];
+          }
+        }
+        if (echoMoment) {
+          const mood = MOODS[echoMoment.mood] || MOODS.warm;
+          const daysAgo = Math.floor((TODAY.getTime() - parseDate(echoMoment.date).getTime()) / (24*60*60*1000));
+          const echoDateLabel = daysAgo === 1 ? '昨天' : daysAgo === 2 ? '前天' : `${daysAgo} 天前`;
+          html.push(`
+            <div class="yesterday-echo" id="yesterday-echo">
+              <div class="echo-header">
+                <span class="echo-label">↶ ${echoDateLabel}的回声</span>
+                <button class="echo-close" id="echo-dismiss" aria-label="收起">×</button>
+              </div>
+              <div class="echo-body">
+                ${echoMoment.image ? `<img class="echo-thumb" src="${echoMoment.image}" alt="" loading="lazy"/>` : `<div class="echo-mood">${mood.emoji}</div>`}
+                <div class="echo-text">${escapeHtml(echoMoment.text)}</div>
+              </div>
+              ${echoMoment.why ? `<div class="echo-why">"${escapeHtml(echoMoment.why)}"</div>` : ''}
+              <div class="echo-cta">现在再看，感觉一样吗？<button class="echo-reflect-btn" id="echo-reflect">写一句 ›</button></div>
+            </div>
+          `);
+        }
+      }
+
+      // v3.61 On This Day（借鉴 Claude Code 分支 + Day One 签名功能）
+      // 检查往年的同月同日有没有瞬间——"这一天很多年前"
+      const todayMD = `${String(TODAY.getMonth()+1).padStart(2,'0')}-${String(TODAY.getDate()).padStart(2,'0')}`;
+      const onThisDay = allUserMoments.filter(m => {
+        const d = parseDate(m.date);
+        const md = `${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        return md === todayMD && d.getFullYear() < TODAY.getFullYear();
+      });
+      if (onThisDay.length > 0) {
+        const otMoment = onThisDay[0];
+        const yearsAgo = TODAY.getFullYear() - parseDate(otMoment.date).getFullYear();
+        const mood = MOODS[otMoment.mood] || MOODS.warm;
+        html.push(`
+          <div class="on-this-day" id="on-this-day">
+            <div class="otd-header">
+              <span class="otd-label">🗓️ ${yearsAgo} 年前的今天</span>
+              <button class="echo-close" id="otd-dismiss" aria-label="收起">×</button>
+            </div>
+            <div class="echo-body">
+              ${otMoment.image ? `<img class="echo-thumb" src="${otMoment.image}" alt="" loading="lazy"/>` : `<div class="echo-mood">${mood.emoji}</div>`}
+              <div class="echo-text">${escapeHtml(otMoment.text)}</div>
+            </div>
+            <div class="echo-cta">时间过得真快。</div>
+          </div>
+        `);
+      }
+    }
+
     // v3.32 锚点 ③："今天的不同"（检测今天 vs 昨天的变化）
     const todayMoments = state.moments.filter(m => m.date === todayStr() && !m.archived);
     if (todayMoments.length > 0) {
@@ -1285,6 +1354,30 @@ if (isNative) {
     // 绑定事件
     scroll.querySelectorAll('[data-upgrade]').forEach(btn => {
       btn.addEventListener('click', () => openUpgrade(btn.dataset.upgrade));
+    });
+
+    // v3.61 昨日回声事件
+    const echoDismiss = document.getElementById('echo-dismiss');
+    if (echoDismiss) echoDismiss.addEventListener('click', () => {
+      const card = document.getElementById('yesterday-echo');
+      if (card) { card.style.opacity = '0'; card.style.transform = 'scale(0.95)'; setTimeout(() => card.remove(), 300); }
+    });
+    const echoReflect = document.getElementById('echo-reflect');
+    if (echoReflect) echoReflect.addEventListener('click', () => {
+      // 找到回声对应的瞬间，打开升级流（"说点什么"）
+      const echoCard = document.getElementById('yesterday-echo');
+      const echoText = echoCard?.querySelector('.echo-text')?.textContent || '';
+      const moment = state.moments.find(m => !m.archived && m.text === echoText);
+      if (moment) {
+        haptic('light');
+        openUpgrade(moment.id);
+      }
+    });
+    // v3.61 On This Day dismiss
+    const otdDismiss = document.getElementById('otd-dismiss');
+    if (otdDismiss) otdDismiss.addEventListener('click', () => {
+      const card = document.getElementById('on-this-day');
+      if (card) { card.style.opacity = '0'; setTimeout(() => card.remove(), 300); }
     });
     const ot = document.getElementById('opening-template-btn');
     if (ot) ot.addEventListener('click', () => document.getElementById('opening-overlay').classList.add('show'));
