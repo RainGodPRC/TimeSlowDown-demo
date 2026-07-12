@@ -1435,6 +1435,7 @@ if (isNative) {
     if (echoDismiss) echoDismiss.addEventListener('click', () => {
       const card = document.getElementById('yesterday-echo');
       if (card) { card.style.opacity = '0'; card.style.transform = 'scale(0.95)'; setTimeout(() => card.remove(), 300); }
+      showPeakEndRitual();  // v3.63 峰终仪式
     });
     const echoReflect = document.getElementById('echo-reflect');
     if (echoReflect) echoReflect.addEventListener('click', () => {
@@ -1609,6 +1610,25 @@ if (isNative) {
     document.getElementById('done-sub').textContent = '这是一个 L1 故事。它会被你记住。';
     done.classList.add('show');
     setTimeout(() => done.classList.remove('show'), 1500);
+
+    // v3.63 开放回路（借鉴 Claude Code Zeigarnik effect）
+    // 偶尔（~30% 概率，全局 cap=1/天）留一个温和的开放句
+    // 目的：制造"明天回来"的轻拉力，而非催促
+    try {
+      const today = todayStr();
+      const lastLoop = localStorage.getItem('tsd_open_loop_date') || '';
+      if (lastLoop !== today && Math.random() < 0.3) {
+        const openLoops = [
+          '这个故事还没讲完——也许明天会有新的注脚。',
+          '留了痕迹。也许明天，会有另一个瞬间和它连上。',
+          '你讲了一个。也许明天，会发现它和另一个瞬间的联系。',
+          '先到这里。生活还在继续——也许明天有新的要讲。',
+        ];
+        const loop = openLoops[Math.floor(Math.random() * openLoops.length)];
+        localStorage.setItem('tsd_open_loop_date', today);
+        setTimeout(() => showToast(loop, 3500), 2200);
+      }
+    } catch(e) {}
   }
 
   // ============================================================
@@ -4685,6 +4705,25 @@ ${素材}`;
   // 启动
   // ============================================================
   // 轻提示 toast
+  // v3.63 峰终仪式（借鉴 Claude Code 峰终定律——回访结束的满足性终止）
+  // 1.2 秒全屏微仪式：一个光点缓缓落入暖色背景，像石头沉入河床
+  // 目的：让用户带着"安放好了"的感觉离开，而非"再看一个"的续杯冲动
+  function showPeakEndRitual() {
+    const ritual = document.createElement('div');
+    ritual.className = 'peak-end-ritual';
+    ritual.innerHTML = `<div class="pe-stone"></div>`;
+    document.querySelector('.phone-screen')?.appendChild(ritual);
+    haptic('success');
+    // 触发动画
+    requestAnimationFrame(() => ritual.classList.add('show'));
+    // 1.2 秒后移除
+    setTimeout(() => {
+      ritual.classList.remove('show');
+      setTimeout(() => ritual.remove(), 400);
+    }, 1200);
+    track('peak_end_ritual');
+  }
+
   function showToast(text, duration = 2000) {
     const t = document.getElementById('toast');
     if (!t) return;

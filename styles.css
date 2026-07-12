@@ -4320,3 +4320,34 @@ button:active:not(:disabled) {
   color: var(--ink-soft);
   line-height: 1.5;
 }
+
+/* v3.63 峰终仪式（借鉴 Claude Code 峰终定律） */
+.peak-end-ritual {
+  position: absolute; inset: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(250, 246, 239, 0);
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+.peak-end-ritual.show {
+  background: rgba(250, 246, 239, 0.92);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.pe-stone {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, var(--amber-soft), var(--amber-deep));
+  box-shadow: 0 0 20px rgba(200, 135, 60, 0.3);
+  opacity: 0;
+  transform: translateY(-40px) scale(0.5);
+  transition: all 1.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.peak-end-ritual.show .pe-stone {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+@media (prefers-color-scheme: dark) {
+  .peak-end-ritual.show {
+    background: rgba(26, 22, 18, 0.92);
+  }
+}
