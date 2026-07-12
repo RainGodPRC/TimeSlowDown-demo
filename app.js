@@ -1402,6 +1402,7 @@ if (isNative) {
           })()}
           <button class="ma-share-btn" id="ma-share-btn">📸 生成月度回顾长图</button>
           <button class="ma-gift-btn" id="ma-gift-btn">💌 送给在乎的人</button>
+          <button class="ma-feeling-btn" id="ma-feeling-btn">💭 分享一种感受</button>
         </div>
       `);
     }
@@ -1549,6 +1550,9 @@ if (isNative) {
     if (maShareBtn) maShareBtn.addEventListener('click', generateMonthlyReview);
     const maGiftBtn = document.getElementById('ma-gift-btn');
     if (maGiftBtn) maGiftBtn.addEventListener('click', showGiftOverlay);
+    // v3.63 "我也是"感受标签（借鉴 Claude Code 抽象感受分享）
+    const maFeelingBtn = document.getElementById('ma-feeling-btn');
+    if (maFeelingBtn) maFeelingBtn.addEventListener('click', showFeelingShare);
   }
 
     // ============================================================
@@ -2252,6 +2256,108 @@ ${素材}`;
   // ============================================================
   // v3.34 #8 "送给在乎的人"（情感唤起推荐）
   // ============================================================
+  // v3.63 "我也是"感受标签（借鉴 Claude Code 最小暴露面分享）
+  // 分享抽象感受词（如"一种轻轻的释然"），不含原文/照片/定位
+  // 心理学：Liem 感知相似→分享——让别人感到"我也经历过"
+  function showFeelingShare() {
+    const feelings = [
+      '一种轻轻的释然', '一阵没有来由的平静', '被什么温暖了一下',
+      '一种说不出的感激', '心里某个角落被照亮了', '一种久违的松弛',
+      '和什么和解了的感觉', '一种被接住的安心', '忽然觉得活着真好',
+      '一种深深的满足', '像被什么原谅了', '心里安静了下来',
+      '一种"没关系"的感觉', '忽然不再害怕了', '像终于到了一个地方',
+    ];
+    const ov = document.getElementById('upgrade-overlay');
+    const card = ov.querySelector('.upgrade-card');
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-title">分享一种感受</span>
+        <button class="upgrade-close" id="feeling-close">×</button>
+      </div>
+      <div class="upgrade-body">
+        <p class="info-para" style="text-align:center;margin-bottom:20px">
+          不分享原文、照片或位置。<br/>
+          只分享一个感受——也许有人正需要听到它。
+        </p>
+        <div class="feeling-grid" id="feeling-grid">
+          ${feelings.map((f, i) => `<button class="feeling-chip" data-feeling="${escapeHtml(f)}">${escapeHtml(f)}</button>`).join('')}
+        </div>
+      </div>
+    `;
+    ov.classList.add('show');
+    card.querySelector('#feeling-close').addEventListener('click', () => ov.classList.remove('show'));
+    card.querySelectorAll('.feeling-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const feeling = btn.dataset.feeling;
+        generateFeelingCard(feeling);
+        ov.classList.remove('show');
+      });
+    });
+    track('feeling_share_opened');
+  }
+
+  // 生成感受卡（纯文字 Canvas——零可识别信息）
+  function generateFeelingCard(feeling) {
+    const W = 800, H = 1000;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    // 暖色背景
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, '#faf6ef');
+    grad.addColorStop(1, '#f0e6d0');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+    // 引号装饰
+    ctx.font = '200 120px serif';
+    ctx.fillStyle = 'rgba(200, 135, 60, 0.08)';
+    ctx.fillText('"', 80, 200);
+    ctx.fillText('"', W - 140, H - 100);
+    // 感受文字
+    ctx.fillStyle = '#3e3227';
+    ctx.font = '600 38px "Noto Serif SC", serif';
+    ctx.textAlign = 'center';
+    // 自动换行
+    const words = feeling.split('');
+    let line = '', y = 480;
+    const maxWidth = W - 160;
+    for (const ch of words) {
+      const test = line + ch;
+      if (ctx.measureText(test).width > maxWidth) {
+        ctx.fillText(line, W/2, y);
+        line = ch; y += 56;
+      } else { line = test; }
+    }
+    if (line) ctx.fillText(line, W/2, y);
+    // 底部署名
+    ctx.font = '14px sans-serif';
+    ctx.fillStyle = '#c8873c';
+    ctx.fillText('TSD · Time Slow Down', W/2, H - 80);
+    ctx.font = '12px sans-serif';
+    ctx.fillStyle = '#a8a094';
+    ctx.fillText('你也经历过这样的时刻吗？', W/2, H - 56);
+
+    // 分享
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      if (isNative && CapacitorShare) {
+        CapacitorFS?.writeFile({
+          path: `tsd-feeling-${Date.now()}.png`,
+          data: canvas.toDataURL('image/png').split(',')[1],
+          directory: 'DOCUMENTS',
+        }).then(result => {
+          CapacitorShare.share({ title: '一种感受', url: result.uri });
+        }).catch(() => showToast('感受卡已生成'));
+      } else {
+        const a = document.createElement('a');
+        a.href = url; a.download = `tsd-feeling-${Date.now()}.png`;
+        a.click(); URL.revokeObjectURL(url);
+        showToast('感受卡已保存 · 可分享');
+      }
+    }, 'image/png');
+    track('feeling_card_generated');
+  }
+
   function showGiftOverlay() {
     track('gift_opened');
     const ov = document.getElementById('upgrade-overlay');

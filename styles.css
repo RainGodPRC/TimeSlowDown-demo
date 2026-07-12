@@ -3742,6 +3742,31 @@ button:active:not(:disabled) {
   font-family: var(--font-sans);
 }
 .ma-gift-btn:hover { background: rgba(168,192,160,0.12); }
+.ma-feeling-btn {
+  display: block; width: 100%;
+  padding: 10px; margin-top: 8px;
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  background: var(--bg-paper); color: var(--amber-deep);
+  font-family: var(--font-sans); font-size: 13px;
+  cursor: pointer; transition: all 0.2s ease;
+}
+.ma-feeling-btn:hover { background: rgba(200,135,60,0.06); }
+
+/* v3.63 "我也是"感受标签（借鉴 Claude Code 最小暴露面） */
+.feeling-grid {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  justify-content: center; padding: 8px;
+}
+.feeling-chip {
+  padding: 10px 16px; border-radius: 20px;
+  background: var(--bg-warm); border: 1px solid var(--line);
+  font-family: var(--font-serif); font-size: 14px;
+  color: var(--ink-soft); cursor: pointer;
+  transition: all 0.2s var(--ease-spring);
+  -webkit-tap-highlight-color: transparent;
+}
+.feeling-chip:active { transform: scale(0.93); }
+.feeling-chip:hover { border-color: var(--amber-soft); color: var(--amber-deep); }
 
 /* v3.34 #8 送给在乎的人 */
 .gift-overlay {
