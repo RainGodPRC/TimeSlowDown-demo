@@ -862,6 +862,30 @@ if (isNative) {
     const greeting = TIME_GREETINGS[timeKey];
     html.push(`<div class="time-greeting">${greeting.icon} ${escapeHtml(greeting.text)}</div>`);
 
+    // v3.62 fresh-start 仪式（借鉴 Claude Code temporal landmarks / Dai 2014）
+    // 周一/月初给一个温和的仪式提示——不催促，只是温柔标记
+    if (state.mode === 'empty' && !state.quietMode) {
+      const dayOfWeek = TODAY.getDay();  // 0=周日
+      const dayOfMonth = TODAY.getDate();
+      const isMonday = dayOfWeek === 1;
+      const isFirstOfMonth = dayOfMonth === 1;
+      if (isMonday) {
+        // 检查上周有没有 Mark
+        const weekAgo = new Date(TODAY.getTime() - 7*24*60*60*1000);
+        const lastWeekMarks = state.moments.filter(m => {
+          if (m.archived) return false;
+          const d = parseDate(m.date);
+          return d >= weekAgo && d < TODAY;
+        }).length;
+        const msg = lastWeekMarks > 0
+          ? `新的一周。上周你留了 ${lastWeekMarks} 个瞬间。`
+          : '新的一周开始了。不着急——留一个就算。';
+        html.push(`<div class="fresh-start">🌿 ${escapeHtml(msg)}</div>`);
+      } else if (isFirstOfMonth) {
+        html.push(`<div class="fresh-start">🌿 新的一个月。时间会过，但你留下的不会。</div>`);
+      }
+    }
+
     // v3.32 锚点 ②：每日一词（B 组不显示）
     const dayOfYear = Math.floor((TODAY - new Date(TODAY.getFullYear(), 0, 0)) / 86400000);
     if (shouldShowAnchor('daily_word')) {
