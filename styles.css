@@ -2760,6 +2760,64 @@ button:active:not(:disabled) {
   color: var(--ink-faint);
 }
 
+/* v3.62 人物镜头（借鉴 Codex peopleLens） */
+.people-lens { display: flex; flex-direction: column; gap: 16px; }
+.people-card {
+  background: var(--bg-paper);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 14px 16px;
+  animation: cardEnter var(--ease-out) both;
+}
+.people-card-header {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 12px;
+}
+.people-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--amber-soft) 0%, var(--moss-soft) 100%);
+  color: var(--ink); font-size: 18px; font-weight: 600;
+  font-family: var(--font-serif);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.people-info { flex: 1; min-width: 0; }
+.people-name {
+  font-family: var(--font-serif); font-size: 16px; font-weight: 600;
+  color: var(--ink);
+}
+.people-stats {
+  font-size: 11px; color: var(--ink-soft); margin-top: 2px;
+}
+.people-moods { font-size: 16px; flex-shrink: 0; }
+.people-moments { display: flex; flex-direction: column; gap: 8px; }
+.people-moment-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px; border-radius: var(--r-sm);
+  background: var(--bg-warm); cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+.people-moment-row:active { transform: scale(0.97); }
+.people-moment-thumb {
+  width: 36px; height: 36px; border-radius: var(--r-xs);
+  object-fit: cover; flex-shrink: 0;
+}
+.people-moment-emoji {
+  width: 36px; height: 36px; border-radius: var(--r-xs);
+  background: var(--bg-paper); display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.people-moment-text {
+  flex: 1; min-width: 0; font-size: 13px; color: var(--ink-soft);
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+}
+.people-moment-date { font-size: 10px; color: var(--ink-faint); flex-shrink: 0; }
+.people-more {
+  font-size: 12px; color: var(--amber); text-align: center;
+  padding: 6px 0;
+}
+
 /* 视图淡入淡出切换 */
 #archive-list {
   animation: archiveFade 0.35s var(--ease-out);

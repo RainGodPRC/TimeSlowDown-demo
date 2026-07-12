@@ -3367,7 +3367,7 @@ ${素材}`;
     }
 
     // 更新 intro 文案
-    const viewLabels = { list: '按时间倒序', wall: '照片墙', map: '地图视图' };
+    const viewLabels = { list: '按时间倒序', wall: '照片墙', map: '地图视图', people: '按人物分组' };
     if (intro) intro.textContent = sorted.length + ' 个瞬间 · ' + (viewLabels[state.archiveView] || '');
 
     // 空状态
@@ -3382,14 +3382,76 @@ ${素材}`;
       return;
     }
 
-    // 三种视图
+    // 四种视图
     if (state.archiveView === 'wall') {
       renderArchiveWall(sorted);
     } else if (state.archiveView === 'map') {
       renderArchiveMap(sorted);
+    } else if (state.archiveView === 'people') {
+      renderArchivePeople(sorted);
     } else {
       renderArchiveList(sorted);
     }
+  }
+
+  // v3.62 人物镜头（借鉴 Codex peopleLens —— 按人物重新分组，不依赖通讯录/GPS/人脸）
+  function renderArchivePeople(sorted) {
+    const list = document.getElementById('archive-list');
+    // 收集所有人物标签
+    const peopleMap = {};
+    for (const m of sorted) {
+      if (m.archived) continue;
+      const people = m.people || [];
+      if (people.length === 0) continue;
+      for (const p of people) {
+        if (!peopleMap[p]) peopleMap[p] = [];
+        peopleMap[p].push(m);
+      }
+    }
+    // 按瞬间数排序
+    const sortedPeople = Object.entries(peopleMap).sort((a, b) => b[1].length - a[1].length);
+
+    if (sortedPeople.length === 0) {
+      list.innerHTML = `
+        <div class="archive-empty">
+          <div style="font-size:32px;margin-bottom:12px">👥</div>
+          <div>还没有标注过人物</div>
+          <div style="margin-top:8px">Mark 瞬间时填「和谁」就能在这里按人看</div>
+        </div>
+      `;
+      return;
+    }
+
+    let html = '<div class="people-lens">';
+    for (const [person, moments] of sortedPeople) {
+      const told = moments.filter(m => m.toldAt).length;
+      const hasPhoto = moments.some(m => m.image);
+      const moods = moments.map(m => MOODS[m.mood]?.emoji || '🌿');
+      html += `
+        <div class="people-card">
+          <div class="people-card-header">
+            <span class="people-avatar">${escapeHtml(person.charAt(0))}</span>
+            <div class="people-info">
+              <div class="people-name">${escapeHtml(person)}</div>
+              <div class="people-stats">${moments.length} 个瞬间 · ${told} 个讲过</div>
+            </div>
+            <div class="people-moods">${[...new Set(moods)].join(' ')}</div>
+          </div>
+          <div class="people-moments">
+            ${moments.slice(0, 3).map(m => `
+              <div class="people-moment-row" data-upgrade="${m.id}">
+                ${m.image ? `<img class="people-moment-thumb" src="${m.image}" alt="" loading="lazy"/>` : `<div class="people-moment-emoji">${MOODS[m.mood]?.emoji || '🌿'}</div>`}
+                <div class="people-moment-text">${escapeHtml(m.text.substring(0, 40))}</div>
+                <div class="people-moment-date">${fmtDate(m.date)}</div>
+              </div>
+            `).join('')}
+            ${moments.length > 3 ? `<div class="people-more">还有 ${moments.length - 3} 个…</div>` : ''}
+          </div>
+        </div>
+      `;
+    }
+    html += '</div>';
+    list.innerHTML = html;
   }
 
   // 列表视图（默认）
