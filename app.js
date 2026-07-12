@@ -1298,6 +1298,38 @@ if (isNative) {
             }).join('')}
           </div>
           <div class="md-insight">你最常的感受是 ${dominantMoodInfo.emoji} ${dominantMoodInfo.label}</div>
+          ${(() => {
+            // v3.62 情绪趋势（借鉴 Claude Code emotion granularity）
+            // 本周 vs 上周的情绪对比
+            const now = TODAY;
+            const weekAgo = new Date(now.getTime() - 7*24*60*60*1000);
+            const twoWeeksAgo = new Date(now.getTime() - 14*24*60*60*1000);
+            const thisWeek = totalActive.filter(m => parseDate(m.date) >= weekAgo);
+            const lastWeek = totalActive.filter(m => {
+              const d = parseDate(m.date);
+              return d >= twoWeeksAgo && d < weekAgo;
+            });
+            if (thisWeek.length < 1 || lastWeek.length < 1) return '';  // 数据不足
+            const avg = (arr, field) => {
+              if (!arr.length) return 0;
+              const vals = arr.map(m => {
+                const mood = MOODS[m.mood];
+                // 把情绪映射到能量值：bright=1, calm=0.7, joy=0.9, deep=0.4, tired=0.2, grateful=0.6, curious=0.8
+                const energyMap = { bright: 1, calm: 0.7, joy: 0.9, deep: 0.4, tired: 0.2, grateful: 0.6, curious: 0.8 };
+                return energyMap[m.mood] || 0.5;
+              });
+              return vals.reduce((a,b) => a+b, 0) / vals.length;
+            };
+            const thisAvg = avg(thisWeek);
+            const lastAvg = avg(lastWeek);
+            const trend = thisAvg - lastAvg;
+            if (Math.abs(trend) < 0.08) return '';  // 变化太小不显示
+            const trendText = trend > 0
+              ? '这周的情绪比上周明亮一些'
+              : '这周的情绪比上周沉静一些';
+            const trendIcon = trend > 0 ? '☀️' : '🌊';
+            return `<div class="md-trend">${trendIcon} ${trendText}</div>`;
+          })()}
         </div>
       `);
     }
