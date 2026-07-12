@@ -4982,6 +4982,23 @@ ${素材}`;
       confirmBtn.disabled = confirmInput.value.trim() !== '我确定';
     });
     confirmBtn.addEventListener('click', () => {
+      // v3.64 删除回执（借鉴 Codex Tier-1 DNA — verifiable deletion receipt）
+      const receiptId = 'del-' + Date.now().toString(36) + Math.random().toString(36).substring(2, 6);
+      const receiptTimestamp = new Date().toISOString();
+      const dataCounts = {
+        moments: state.moments.filter(m => !m.archived).length,
+        chapters: Object.keys(WEEK_CHAPTERS).filter(k => k >= '2026-W27').length,
+        months: Object.values(MONTH_LANDSCAPES).filter(v => v.userNamed).length,
+        capsules: getTimeCapsules().length,
+      };
+      // 简单 checksum（数据指纹）
+      const checksumInput = receiptId + receiptTimestamp + JSON.stringify(dataCounts);
+      let checksum = 0;
+      for (let i = 0; i < checksumInput.length; i++) {
+        checksum = ((checksum << 5) - checksum + checksumInput.charCodeAt(i)) | 0;
+      }
+      const checksumHex = (checksum >>> 0).toString(16).padStart(8, '0');
+
       // 墓碑快照（会话内可撤销）
       try {
         const tombstone = {
@@ -4999,9 +5016,23 @@ ${素材}`;
         localStorage.removeItem('tsd_user_moments');
         localStorage.removeItem('tsd_user_chapters');
         localStorage.removeItem('tsd_user_months');  // v3.27
+        localStorage.removeItem('tsd_capsules');  // v3.64 也清胶囊
         // v3.30：也清 IndexedDB
         idbDelete('moments'); idbDelete('chapters'); idbDelete('months');
       } catch (e) {}
+
+      // 保存删除回执到 localStorage（用户可在设置页查看）
+      try {
+        localStorage.setItem('tsd_deletion_receipt', JSON.stringify({
+          id: receiptId,
+          timestamp: receiptTimestamp,
+          checksum: checksumHex,
+          deletedCounts: dataCounts,
+        }));
+      } catch(e) {}
+
+      track('data_wiped', { receiptId, ...dataCounts });
+
       // v3.30：显示撤销提示（会话内可恢复）
       ov.classList.remove('show');
       showToast('已清除 · 本会话内可点这里撤销', 8000);
