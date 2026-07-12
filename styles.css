@@ -3768,6 +3768,33 @@ button:active:not(:disabled) {
 .feeling-chip:active { transform: scale(0.93); }
 .feeling-chip:hover { border-color: var(--amber-soft); color: var(--amber-deep); }
 
+/* v3.64 "讲给一个人"信物卡 */
+.ma-tell-one-btn {
+  display: block; width: 100%;
+  padding: 10px; margin-top: 8px;
+  border: 1px solid var(--line); border-radius: var(--r-md);
+  background: var(--bg-paper); color: var(--moss-deep);
+  font-family: var(--font-sans); font-size: 13px;
+  cursor: pointer; transition: all 0.2s ease;
+}
+.ma-tell-one-btn:hover { background: rgba(93,122,92,0.06); }
+.tell-one-list { display: flex; flex-direction: column; gap: 6px; }
+.tell-one-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; border-radius: var(--r-sm);
+  background: var(--bg-warm); cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s var(--ease-spring);
+  -webkit-tap-highlight-color: transparent;
+}
+.tell-one-item:active { transform: scale(0.97); }
+.tell-one-item.selected {
+  border-color: var(--amber); background: rgba(200,135,60,0.06);
+}
+.tell-one-emoji { font-size: 18px; flex-shrink: 0; }
+.tell-one-text { flex: 1; font-size: 13px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tell-one-why { font-size: 11px; color: var(--ink-faint); font-style: italic; flex-shrink: 0; max-width: 100px; overflow: hidden; }
+
 /* v3.34 #8 送给在乎的人 */
 .gift-overlay {
   text-align: center;

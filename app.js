@@ -1403,6 +1403,7 @@ if (isNative) {
           <button class="ma-share-btn" id="ma-share-btn">📸 生成月度回顾长图</button>
           <button class="ma-gift-btn" id="ma-gift-btn">💌 送给在乎的人</button>
           <button class="ma-feeling-btn" id="ma-feeling-btn">💭 分享一种感受</button>
+          <button class="ma-tell-one-btn" id="ma-tell-one-btn">✉️ 讲给一个人</button>
         </div>
       `);
     }
@@ -1553,6 +1554,9 @@ if (isNative) {
     // v3.63 "我也是"感受标签（借鉴 Claude Code 抽象感受分享）
     const maFeelingBtn = document.getElementById('ma-feeling-btn');
     if (maFeelingBtn) maFeelingBtn.addEventListener('click', showFeelingShare);
+    // v3.64 "讲给一个人"信物卡（借鉴 Claude Code Barasch narrowcast）
+    const maTellOne = document.getElementById('ma-tell-one-btn');
+    if (maTellOne) maTellOne.addEventListener('click', showTellOneSheet);
   }
 
     // ============================================================
@@ -2356,6 +2360,172 @@ ${素材}`;
       }
     }, 'image/png');
     track('feeling_card_generated');
+  }
+
+  // v3.64 "讲给一个人"信物卡（借鉴 Claude Code Barasch & Berger narrowcast）
+  // 选一个具体的人 → 生成专属私密信物卡 → 1:1 分享
+  // 与"我也是"区别：这是针对某个人的，包含原话，但一天最多一次
+  function showTellOneSheet() {
+    // 检查今天是否已用过
+    try {
+      if (localStorage.getItem('tsd_tell_one_date') === todayStr()) {
+        showToast('今天已经讲给一个人了。明天还可以。');
+        return;
+      }
+    } catch(e) {}
+
+    // 找有 why 的 told moments
+    const candidates = state.moments.filter(m => !m.archived && m.why && m.why.length >= 5);
+    if (candidates.length === 0) {
+      showToast('先给一个瞬间补充"为什么重要"，就能讲给别人了');
+      return;
+    }
+    const ov = document.getElementById('upgrade-overlay');
+    const card = ov.querySelector('.upgrade-card');
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-title">✉️ 讲给一个人</span>
+        <button class="upgrade-close" id="tell-one-close">×</button>
+      </div>
+      <div class="upgrade-body">
+        <p class="info-para" style="text-align:center;margin-bottom:16px">
+          选一个瞬间，做成专属信物卡，<br/>
+          私密发给一个人。
+        </p>
+        <div class="compose-section-label">写给谁（名字）</div>
+        <input class="upgrade-why" id="tell-one-name" placeholder="他/她的名字…" style="font-size:16px;padding:8px 12px" rows="1">
+        <div class="compose-section-label" style="margin-top:14px">选一个瞬间</div>
+        <div class="tell-one-list" id="tell-one-list">
+          ${candidates.slice(0, 6).map(m => {
+            const mood = MOODS[m.mood] || MOODS.warm;
+            return `<div class="tell-one-item" data-id="${m.id}">
+              <span class="tell-one-emoji">${mood.emoji}</span>
+              <span class="tell-one-text">${escapeHtml(m.text.substring(0, 30))}…</span>
+              <span class="tell-one-why">${escapeHtml(m.why.substring(0, 20))}…</span>
+            </div>`;
+          }).join('')}
+        </div>
+        <button class="upgrade-btn" id="tell-one-generate" style="margin-top:14px;opacity:0.5;pointer-events:none">生成信物卡</button>
+        <p class="info-para" style="font-size:11px;color:var(--ink-faint);margin-top:10px;text-align:center">
+          一天最多一次——摩擦即是珍贵。
+        </p>
+      </div>
+    `;
+    ov.classList.add('show');
+    card.querySelector('#tell-one-close').addEventListener('click', () => ov.classList.remove('show'));
+    let selectedId = null;
+    card.querySelectorAll('.tell-one-item').forEach(item => {
+      item.addEventListener('click', () => {
+        card.querySelectorAll('.tell-one-item').forEach(i => i.classList.remove('selected'));
+        item.classList.add('selected');
+        selectedId = item.dataset.id;
+        const genBtn = card.querySelector('#tell-one-generate');
+        const name = card.querySelector('#tell-one-name').value.trim();
+        if (selectedId) { genBtn.style.opacity = '1'; genBtn.style.pointerEvents = 'auto'; }
+        haptic('light');
+      });
+    });
+    card.querySelector('#tell-one-generate').addEventListener('click', () => {
+      const name = card.querySelector('#tell-one-name').value.trim();
+      if (!name || !selectedId) return;
+      const moment = state.moments.find(m => m.id === selectedId);
+      if (!moment) return;
+      try { localStorage.setItem('tsd_tell_one_date', todayStr()); } catch(e) {}
+      ov.classList.remove('show');
+      generateTellOneCard(name, moment);
+    });
+    track('tell_one_opened');
+  }
+
+  // 生成信物卡 Canvas（私密 1:1 分享）
+  function generateTellOneCard(name, moment) {
+    const W = 800, H = 1100;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    // 雾蓝→赭石渐变（私密感）
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, '#f5f0e8');
+    grad.addColorStop(0.5, '#e8e0d4');
+    grad.addColorStop(1, '#f0e6d0');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+    // 装饰圆（名字首字母）
+    const initial = name.charAt(0);
+    ctx.fillStyle = 'rgba(93, 122, 92, 0.08)';
+    ctx.beginPath(); ctx.arc(W/2, 280, 80, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(200, 135, 60, 0.12)';
+    ctx.font = '600 60px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(initial, W/2, 300);
+    // "给 X·这一刻只留给你"
+    ctx.fillStyle = '#8a5a1f';
+    ctx.font = '600 24px "Noto Serif SC", serif';
+    ctx.fillText(`给 ${name}`, W/2, 430);
+    ctx.fillStyle = '#a8a094';
+    ctx.font = '14px sans-serif';
+    ctx.fillText('这一刻只留给你', W/2, 460);
+    // 分隔线
+    ctx.strokeStyle = 'rgba(200, 135, 60, 0.15)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(200, 500); ctx.lineTo(W - 200, 500); ctx.stroke();
+    // 瞬间文字
+    ctx.fillStyle = '#3e3227';
+    ctx.font = '500 22px "Noto Serif SC", serif';
+    ctx.textAlign = 'center';
+    const text = moment.text.length > 50 ? moment.text.substring(0, 50) + '…' : moment.text;
+    wrapText(ctx, text, W/2, 560, W - 160, 36);
+    // why（为什么重要）
+    if (moment.why) {
+      ctx.fillStyle = '#8a5a1f';
+      ctx.font = 'italic 18px "Noto Serif SC", serif';
+      wrapText(ctx, '"' + moment.why + '"', W/2, 680, W - 180, 30);
+    }
+    // 底部署名
+    ctx.fillStyle = '#c8873c';
+    ctx.font = '14px sans-serif';
+    ctx.fillText('TSD · 一封信物', W/2, H - 80);
+    // 分享
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      if (isNative && CapacitorShare) {
+        canvas.toBlob(b => {
+          const reader = new FileReader();
+          reader.onload = async () => {
+            try {
+              const result = await CapacitorFS.writeFile({
+                path: `tsd-tell-one-${Date.now()}.png`,
+                data: reader.result.split(',')[1],
+                directory: 'DOCUMENTS',
+              });
+              await CapacitorShare.share({ title: `给 ${name}`, url: result.uri });
+            } catch(e) { showToast('信物卡已生成'); }
+          };
+          reader.readAsDataURL(b);
+        });
+      } else {
+        const a = document.createElement('a');
+        a.href = url; a.download = `tsd-gift-${name}-${Date.now()}.png`;
+        a.click(); URL.revokeObjectURL(url);
+        showToast(`信物卡已生成 · 给 ${name}`);
+      }
+    }, 'image/png');
+    track('tell_one_generated', { hasWhy: !!moment.why });
+  }
+
+  // Canvas 文字换行辅助
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    const chars = text.split('');
+    let line = ''; let lineCount = 0;
+    for (const ch of chars) {
+      const test = line + ch;
+      if (ctx.measureText(test).width > maxWidth && line) {
+        ctx.fillText(line, x, y + lineCount * lineHeight);
+        line = ch; lineCount++;
+        if (lineCount > 6) break;  // 最多 7 行
+      } else { line = test; }
+    }
+    if (line) ctx.fillText(line, x, y + lineCount * lineHeight);
   }
 
   function showGiftOverlay() {
