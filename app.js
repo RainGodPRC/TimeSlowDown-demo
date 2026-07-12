@@ -2332,7 +2332,65 @@ ${素材}`;
     showFirstMonthReview();
   }
 
-  // v3.44 年度回顾（365 天惊喜触发 + 社交货币长图）
+  // v3.63 月度重逢报告（借鉴 Claude Code 年度重逢 + 禀赋放大器）
+  // 每月底弹出一次反思性统计——不分享，只内省
+  function checkMonthlyReunion() {
+    if (state.mode !== 'empty' || state.quietMode) return;
+    const totalActive = state.moments.filter(m => !m.archived);
+    if (totalActive.length < 5) return;  // 数据太少不弹
+    try {
+      const monthKey = `${TODAY.getFullYear()}-${String(TODAY.getMonth()+1).padStart(2,'0')}`;
+      const shown = localStorage.getItem('tsd_monthly_reunion') || '';
+      // 只在每月 25 号以后且本月未弹过时触发
+      if (TODAY.getDate() < 25) return;
+      if (shown === monthKey) return;
+      localStorage.setItem('tsd_monthly_reunion', monthKey);
+
+      // 统计本月数据
+      const monthStart = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
+      const monthMoments = totalActive.filter(m => parseDate(m.date) >= monthStart);
+      const toldThisMonth = monthMoments.filter(m => m.toldAt).length;
+      const allPeople = [...new Set(totalActive.flatMap(m => m.people || []))];
+      const toldCount = monthMoments.filter(m => m.why && m.why.length >= 5).length;
+      const topMood = (() => {
+        const counts = {};
+        monthMoments.forEach(m => counts[m.mood] = (counts[m.mood]||0)+1);
+        const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+        return sorted[0] ? MOODS[sorted[0][0]] : null;
+      })();
+
+      // 弹出反思报告
+      const ov = document.getElementById('upgrade-overlay');
+      const card = ov.querySelector('.upgrade-card');
+      card.innerHTML = `
+        <div class="upgrade-header">
+          <span class="upgrade-title">${monthKey} 的重逢</span>
+          <button class="upgrade-close" id="reunion-close">×</button>
+        </div>
+        <div class="upgrade-body">
+          <div style="text-align:center;padding:12px 0 20px">
+            <div style="font-family:var(--font-serif);font-size:20px;color:var(--ink);margin-bottom:16px">
+              这个月，你经历了什么
+            </div>
+            <div style="display:flex;justify-content:center;gap:24px;margin:20px 0">
+              <div><div style="font-size:28px;color:var(--amber);font-family:var(--font-serif)">${monthMoments.length}</div><div style="font-size:11px;color:var(--ink-soft)">个瞬间</div></div>
+              <div><div style="font-size:28px;color:var(--moss);font-family:var(--font-serif)">${toldThisMonth}</div><div style="font-size:11px;color:var(--ink-soft)">个讲过</div></div>
+              <div><div style="font-size:28px;color:var(--bloom);font-family:var(--font-serif)">${toldCount}</div><div style="font-size:11px;color:var(--ink-soft)">个能讲出</div></div>
+            </div>
+            ${topMood ? `<div style="font-size:14px;color:var(--ink-soft);margin:12px 0">最常的感受是 ${topMood.emoji} ${topMood.label}</div>` : ''}
+            ${allPeople.length > 0 ? `<div style="font-size:13px;color:var(--ink-faint);margin:12px 0">出现了 ${allPeople.length} 个人：${allPeople.slice(0,5).map(escapeHtml).join('、')}${allPeople.length > 5 ? '…' : ''}</div>` : ''}
+            <div style="font-size:13px;color:var(--amber-deep);font-style:italic;margin-top:20px;padding:0 20px;line-height:1.7">
+              ${monthMoments.length >= 10 ? '这个月留下了不少——它们不会飞快地消失。' : monthMoments.length >= 3 ? '不多的几个，但每一个都是你真实经历过的。' : '即使只有几个，也是这个月被区分开的证据。'}
+            </div>
+          </div>
+        </div>
+      `;
+      ov.classList.add('show');
+      card.querySelector('#reunion-close').addEventListener('click', () => ov.classList.remove('show'));
+      haptic('success');
+      track('monthly_reunion_shown', { month: monthKey, count: monthMoments.length });
+    } catch(e) {}
+  }
   function showYearReview() {
     const { YEAR_REVIEW_SEED } = window.__TSD_DATA__;
     const active = state.moments.filter(m => !m.archived);
@@ -4846,6 +4904,8 @@ ${素材}`;
     // v3.37 首月回顾检测（用满 30 天时惊喜弹出）
     if (state.mode === 'empty') {
       setTimeout(checkFirstMonthReview, 2500);
+      // v3.63 月度重逢报告（每月最后一天/第一天检查）
+      setTimeout(checkMonthlyReunion, 3000);
     }
 
     // v3.25 原生通知注册（Capacitor 环境下，用户已不关闭扫描时）
