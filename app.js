@@ -2438,6 +2438,116 @@ ${素材}`;
     showFirstMonthReview();
   }
 
+  // v3.64 时间胶囊（借鉴 Claude Code "封存给那时的我"——最强健康病毒引擎）
+  // 写给未来的自己，解锁日弹窗"那时的我留了一封信给你"
+  function getTimeCapsules() {
+    try { return JSON.parse(localStorage.getItem('tsd_capsules') || '[]'); }
+    catch(e) { return []; }
+  }
+  function saveTimeCapsules(list) {
+    try { localStorage.setItem('tsd_capsules', JSON.stringify(list)); } catch(e) {}
+  }
+  function openTimeCapsuleComposer() {
+    const ov = document.getElementById('upgrade-overlay');
+    const card = ov.querySelector('.upgrade-card');
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-title">🔒 封存给那时的我</span>
+        <button class="upgrade-close" id="capsule-close">×</button>
+      </div>
+      <div class="upgrade-body">
+        <p class="info-para" style="text-align:center;margin-bottom:16px">
+          写几句话给未来的自己。<br/>
+          到了那一天，它会重新出现。
+        </p>
+        <textarea class="upgrade-why" id="capsule-text" placeholder="此刻你最想记住的是什么……" rows="5" style="font-size:15px"></textarea>
+        <div class="compose-section-label" style="margin-top:18px">什么时候打开</div>
+        <div class="capsule-periods" id="capsule-periods">
+          <button class="capsule-period" data-days="30">1 个月</button>
+          <button class="capsule-period" data-days="90">3 个月</button>
+          <button class="capsule-period" data-days="180">半年</button>
+          <button class="capsule-period" data-days="365">1 年</button>
+          <button class="capsule-period" data-days="1825">5 年</button>
+        </div>
+        <button class="upgrade-btn" id="capsule-seal" style="margin-top:18px;opacity:0.5;pointer-events:none">封存</button>
+        <p class="info-para" style="font-size:11px;color:var(--ink-faint);margin-top:12px;text-align:center">
+          封存后无法提前打开。到了那天，TSD 会提醒你。
+        </p>
+      </div>
+    `;
+    ov.classList.add('show');
+    card.querySelector('#capsule-close').addEventListener('click', () => ov.classList.remove('show'));
+    let selectedDays = 0;
+    card.querySelectorAll('.capsule-period').forEach(btn => {
+      btn.addEventListener('click', () => {
+        card.querySelectorAll('.capsule-period').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        selectedDays = parseInt(btn.dataset.days);
+        const sealBtn = card.querySelector('#capsule-seal');
+        sealBtn.style.opacity = '1'; sealBtn.style.pointerEvents = 'auto';
+        haptic('light');
+      });
+    });
+    card.querySelector('#capsule-seal').addEventListener('click', () => {
+      const text = card.querySelector('#capsule-text').value.trim();
+      if (!text || !selectedDays) return;
+      const unlockAt = new Date(Date.now() + selectedDays * 24*60*60*1000);
+      const capsules = getTimeCapsules();
+      capsules.push({
+        id: 'cap-' + Date.now(),
+        text,
+        sealedAt: new Date().toISOString(),
+        unlockAt: unlockAt.toISOString(),
+        viewed: false,
+      });
+      saveTimeCapsules(capsules);
+      ov.classList.remove('show');
+      track('capsule_sealed', { days: selectedDays });
+      haptic('success');
+      showPeakEndRitual();
+      const days = selectedDays;
+      showToast(`已封存 · ${days >= 365 ? Math.round(days/365) + ' 年后' : Math.round(days/30) + ' 个月后'}见`, 3000);
+    });
+  }
+
+  // 启动时检查是否有已解锁的胶囊
+  function checkCapsuleUnlocks() {
+    const capsules = getTimeCapsules();
+    const now = Date.now();
+    const unlocked = capsules.filter(c => !c.viewed && new Date(c.unlockAt).getTime() <= now);
+    if (unlocked.length === 0) return;
+    // 弹出第一封
+    const cap = unlocked[0];
+    const ov = document.getElementById('upgrade-overlay');
+    const card = ov.querySelector('.upgrade-card');
+    const sealedDate = new Date(cap.sealedAt);
+    const sealedLabel = `${sealedDate.getFullYear()}年${sealedDate.getMonth()+1}月${sealedDate.getDate()}日`;
+    card.innerHTML = `
+      <div class="upgrade-header">
+        <span class="upgrade-title">📬 那时的我留了一封信</span>
+        <button class="upgrade-close" id="cap-open-close">×</button>
+      </div>
+      <div class="upgrade-body" style="text-align:center;padding:24px 20px">
+        <div style="font-size:13px;color:var(--ink-faint);margin-bottom:16px">${sealedLabel} 封存</div>
+        <div style="font-family:var(--font-serif);font-size:17px;line-height:1.8;color:var(--ink);padding:0 12px;white-space:pre-wrap">${escapeHtml(cap.text)}</div>
+        <div style="margin-top:24px;font-size:13px;color:var(--amber-deep);font-style:italic">— 那时的你</div>
+      </div>
+      <div style="padding:0 20px 20px">
+        <button class="upgrade-btn" id="cap-open-done">收下了</button>
+      </div>
+    `;
+    ov.classList.add('show');
+    card.querySelector('#cap-open-close').addEventListener('click', () => ov.classList.remove('show'));
+    card.querySelector('#cap-open-done').addEventListener('click', () => {
+      cap.viewed = true;
+      saveTimeCapsules(capsules);
+      ov.classList.remove('show');
+      haptic('success');
+      showPeakEndRitual();
+      track('capsule_opened');
+    });
+  }
+
   // v3.63 月度重逢报告（借鉴 Claude Code 年度重逢 + 禀赋放大器）
   // 每月底弹出一次反思性统计——不分享，只内省
   function checkMonthlyReunion() {
@@ -4250,6 +4360,7 @@ ${素材}`;
               <div class="setting-group">
                 <div class="setting-row"><span>导出我的记忆数据</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="export-link">JSON ›</span></div>
                 <div class="setting-row"><span>导入记忆数据</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="import-link">从备份恢复 ›</span></div>
+                <div class="setting-row"><span>🔒 时间胶囊</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="capsule-link">封存给未来 ›</span></div>
                 <div class="setting-row"><span>收起的瞬间</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="archived-link">恢复 / 删除 ›</span></div>
                 <div class="setting-row"><span>反馈 / 建议</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="feedback-link">写一句 ›</span></div>
                 <div class="setting-row"><span>隐私政策</span><span style="font-size:11px;color:var(--ink-soft);cursor:pointer" id="privacy-link">查看 ›</span></div>
@@ -4317,6 +4428,47 @@ ${素材}`;
             // v3.59 数据导入
             const il = v.querySelector('#import-link');
             if (il) il.addEventListener('click', importMyData);
+            // v3.64 时间胶囊入口
+            const cl = v.querySelector('#capsule-link');
+            if (cl) cl.addEventListener('click', () => {
+              const capsules = getTimeCapsules();
+              if (capsules.length > 0) {
+                // 显示已有胶囊列表
+                const ov = document.getElementById('upgrade-overlay');
+                const card = ov.querySelector('.upgrade-card');
+                const now = Date.now();
+                card.innerHTML = `
+                  <div class="upgrade-header">
+                    <span class="upgrade-title">🔒 时间胶囊</span>
+                    <button class="upgrade-close" id="cap-list-close">×</button>
+                  </div>
+                  <div class="upgrade-body">
+                    ${capsules.map(c => {
+                      const unlock = new Date(c.unlockAt).getTime();
+                      const isUnlocked = unlock <= now;
+                      const daysLeft = Math.ceil((unlock - now) / (24*60*60*1000));
+                      return `<div style="padding:12px;border-radius:var(--r-sm);background:var(--bg-warm);margin-bottom:8px">
+                        <div style="font-size:13px;color:${isUnlocked ? 'var(--moss-deep)' : 'var(--ink-faint)'}">
+                          ${isUnlocked ? '📬 已解锁' : `🔒 ${daysLeft > 0 ? daysLeft + ' 天后' : '今天'}打开`}
+                        </div>
+                        <div style="font-family:var(--font-serif);font-size:14px;color:${isUnlocked ? 'var(--ink)' : 'var(--ink-faint)'};margin-top:4px;${isUnlocked ? '' : 'filter:blur(4px);'}">
+                          ${isUnlocked ? escapeHtml(c.text) : '内容封存中…'}
+                        </div>
+                      </div>`;
+                    }).join('')}
+                    <button class="upgrade-btn" id="cap-new" style="margin-top:12px">写新的胶囊</button>
+                  </div>
+                `;
+                ov.classList.add('show');
+                card.querySelector('#cap-list-close').addEventListener('click', () => ov.classList.remove('show'));
+                card.querySelector('#cap-new').addEventListener('click', () => {
+                  ov.classList.remove('show');
+                  setTimeout(openTimeCapsuleComposer, 300);
+                });
+              } else {
+                openTimeCapsuleComposer();
+              }
+            });
             const fl = v.querySelector('#feedback-link');
             if (fl) fl.addEventListener('click', () => showInfoOverlay('feedback'));
             const pl = v.querySelector('#privacy-link');
@@ -5012,6 +5164,8 @@ ${素材}`;
       setTimeout(checkFirstMonthReview, 2500);
       // v3.63 月度重逢报告（每月最后一天/第一天检查）
       setTimeout(checkMonthlyReunion, 3000);
+      // v3.64 时间胶囊解锁检查
+      setTimeout(checkCapsuleUnlocks, 3500);
     }
 
     // v3.25 原生通知注册（Capacitor 环境下，用户已不关闭扫描时）

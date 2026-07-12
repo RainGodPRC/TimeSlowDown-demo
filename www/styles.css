@@ -4376,3 +4376,21 @@ button:active:not(:disabled) {
     background: rgba(26, 22, 18, 0.92);
   }
 }
+
+/* v3.64 时间胶囊（借鉴 Claude Code FutureMe） */
+.capsule-periods {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;
+}
+.capsule-period {
+  padding: 8px 14px; border-radius: 20px;
+  background: var(--bg-warm); border: 1px solid var(--line);
+  font-family: var(--font-sans); font-size: 13px;
+  color: var(--ink-soft); cursor: pointer;
+  transition: all 0.2s var(--ease-spring);
+  -webkit-tap-highlight-color: transparent;
+}
+.capsule-period:active { transform: scale(0.93); }
+.capsule-period.selected {
+  background: var(--amber); color: #fff; border-color: var(--amber);
+  box-shadow: 0 2px 8px rgba(200,135,60,0.3);
+}
